@@ -15,6 +15,7 @@
 
 module Fracada.Validator where
 
+import           Data.Maybe             (fromJust)
 import           GHC.Generics           (Generic)
 import           Ledger                 hiding (singleton)
 import qualified Ledger.Crypto          as Crypto
@@ -63,7 +64,7 @@ PlutusTx.makeIsDataIndexed ''FractionNFTParameters [('FractionNFTParameters,0)]
 data FractionNFTDatum = FractionNFTDatum {
       tokensClass    :: !AssetClass,
       totalFractions :: !Integer
-    } deriving (Generic, Show)
+    } deriving (Generic, Show, Eq)
 
 PlutusTx.makeLift ''FractionNFTDatum
 PlutusTx.makeIsDataIndexed ''FractionNFTDatum [('FractionNFTDatum,0)]
@@ -113,38 +114,61 @@ findOwnInput' ctx = fromMaybe (error ()) (findOwnInput ctx)
 valueWithin :: TxInInfo -> Value
 valueWithin = txOutValue . txInInfoResolved
 
+{-# INLINABLE datumToData #-}
+datumToData :: (PlutusTx.FromData a) => Datum -> Maybe a
+datumToData datum = PlutusTx.fromBuiltinData $ PlutusTx.toBuiltinData (getDatum datum)
+
 {-# INLINABLE fractionNftValidator #-}
 fractionNftValidator :: FractionNFTParameters -> FractionNFTDatum -> Maybe AddToken -> ScriptContext -> Bool
 fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorizedPubKeys, minSigRequired } FractionNFTDatum{tokensClass, totalFractions} redeemer ctx =
   let
     txInfo = scriptContextTxInfo ctx
     valueInContract = valueLockedBy txInfo (ownHash ctx)
+    currentValueInContract = valueWithin $ findOwnInput' ctx
+    forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
   in
     if isJust redeemer then
-      -- add new tokens to the lock
       let
         Just AddToken {newToken, signatures', message} = redeemer
-        newTokenValueOf val = assetClassValueOf val newToken
-        oldValue = newTokenValueOf $ valueWithin $ findOwnInput' ctx
-        newValue = newTokenValueOf valueInContract
-        requiredSignatures = validateSignatures authorizedPubKeys minSigRequired signatures' message
-        valueIncreased = oldValue < newValue
-        -- base token preserved
       in
-        traceIfFalse "not enough signatures"  requiredSignatures &&
-        traceIfFalse "no new value " (not $ isZero $ valueProduced txInfo ) &&
-        traceIfFalse "token preserved " (not $ isZero $ valueInContract ) &&
-        traceIfFalse "Tokens not added" valueIncreased -- do we allow to withdraw tokens (except the original) ?
+        if forgedTokens >0 then
+            let
+              -- minting more tokens, signatures are required
+              requiredSignatures = validateSignatures authorizedPubKeys minSigRequired signatures' message
+              -- keep the NFTs
+              valuePreserved = valueInContract == currentValueInContract
+              -- update total count
+              (_, ownDatumHash) = ownHashes ctx
+              [(_,newDatum)] =  filter (\(h,d) -> h /= ownDatumHash) $ txInfoData txInfo
+              Just FractionNFTDatum{tokensClass=tc', totalFractions= tf'} = datumToData newDatum
+              datumUpdated = tc' == tokensClass && tf' == totalFractions + forgedTokens
+            in
+              traceIfFalse "not enough signatures for minting"  requiredSignatures &&
+              traceIfFalse "contract value not preserved"  valuePreserved
+              && traceIfFalse "datum not updated"  datumUpdated
+        else
+            -- add new tokens to the lock
+          let
+            newTokenValueOf val = assetClassValueOf val newToken
+            oldValue = newTokenValueOf $ valueWithin $ findOwnInput' ctx
+            newValue = newTokenValueOf valueInContract
+            requiredSignatures = validateSignatures authorizedPubKeys minSigRequired signatures' message
+            valueIncreased = oldValue < newValue
+            -- base token preserved
+          in
+            traceIfFalse "not enough signatures for redeeming"  requiredSignatures &&
+            traceIfFalse "no new value " (not $ isZero $ valueProduced txInfo ) &&
+            traceIfFalse "token preserved " (not $ isZero $ valueInContract ) &&
+            traceIfFalse "Tokens not added" valueIncreased
     else
-    let
-        -- make sure the asset is spent
-        assetIsReturned = assetClassValueOf (valueProduced txInfo) nftAsset > 0
-        forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
-        tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0
-    in
-        traceIfFalse "NFT not returned" assetIsReturned &&
-        traceIfFalse "Value locked in contract" ( isZero valueInContract ) &&
-        traceIfFalse "Tokens not burn" tokensBurnt
+      let
+          -- make sure the asset(s) are returned
+          assetIsReturned = assetClassValueOf (valueProduced txInfo) nftAsset > 0
+          tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0
+        in
+          traceIfFalse "NFT not returned" assetIsReturned &&
+          traceIfFalse "Value locked in contract" ( isZero valueInContract ) &&
+          traceIfFalse "Tokens not burn" tokensBurnt
 
 
 fractionNftValidatorInstance ::  FractionNFTParameters -> Scripts.TypedValidator Fractioning
