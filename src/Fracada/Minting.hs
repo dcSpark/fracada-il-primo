@@ -22,8 +22,8 @@ import           PlutusTx.Prelude     hiding (Semigroup (..), unless)
 
 
 {-# INLINABLE mintFractionTokens #-}
-mintFractionTokens :: ValidatorHash -> AssetClass -> Integer -> TokenName -> BuiltinData -> ScriptContext -> Bool
-mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _ ctx =
+mintFractionTokens :: ValidatorHash -> AssetClass -> TokenName -> Integer -> ScriptContext -> Bool
+mintFractionTokens fractionNFTScript asset fractionTokenName numberOfFractions ctx =
   let
     info = scriptContextTxInfo ctx
     mintedAmount = case flattenValue (txInfoMint info) of
@@ -49,18 +49,16 @@ mintFractionTokens fractionNFTScript asset numberOfFractions fractionTokenName _
 
 
 
-mintFractionTokensPolicy :: FractionNFTParameters -> Integer -> TokenName -> Scripts.MintingPolicy
-mintFractionTokensPolicy params@FractionNFTParameters{initTokenClass} numberOfFractions fractionTokenName = mkMintingPolicyScript $
-    $$(PlutusTx.compile [|| \validator' asset' numberOfFractions' fractionTokenName' -> Scripts.wrapMintingPolicy $ mintFractionTokens validator' asset' numberOfFractions' fractionTokenName' ||])
+mintFractionTokensPolicy :: FractionNFTParameters -> TokenName -> Scripts.MintingPolicy
+mintFractionTokensPolicy params@FractionNFTParameters{initTokenClass} fractionTokenName = mkMintingPolicyScript $
+    $$(PlutusTx.compile [|| \validator' asset' fractionTokenName' -> Scripts.wrapMintingPolicy $ mintFractionTokens validator' asset' fractionTokenName' ||])
     `PlutusTx.applyCode`
     PlutusTx.liftCode ( fractionNftValidatorHash params)
     `PlutusTx.applyCode`
     PlutusTx.liftCode initTokenClass
     `PlutusTx.applyCode`
-    PlutusTx.liftCode numberOfFractions
-    `PlutusTx.applyCode`
     PlutusTx.liftCode fractionTokenName
 
-curSymbol ::  FractionNFTParameters -> Integer -> TokenName -> CurrencySymbol
-curSymbol params numberOfFractions fractionTokenName = scriptCurrencySymbol $ mintFractionTokensPolicy params numberOfFractions fractionTokenName
+curSymbol ::  FractionNFTParameters -> TokenName -> CurrencySymbol
+curSymbol params fractionTokenName = scriptCurrencySymbol $ mintFractionTokensPolicy params fractionTokenName
 

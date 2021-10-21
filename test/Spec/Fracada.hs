@@ -62,9 +62,9 @@ useCaseTests :: TestTree
 useCaseTests =
     let contract = Fracada.endpoints contractParams in
         testGroup "fracada"
-        [ checkPredicate "Expose '1-fractionNFT' and '2-returnNFT' endpoints"
-        (endpointAvailable @"1-fractionNFT" contract (Trace.walletInstanceTag $ toMockWallet wallet1)
-        .&&. endpointAvailable @"2-returnNFT" contract (Trace.walletInstanceTag $ toMockWallet  wallet2)
+        [ checkPredicate "Expose 'fractionNFT' and 'returnNFT' endpoints"
+        (endpointAvailable @"fractionNFT" contract (Trace.walletInstanceTag $ toMockWallet wallet1)
+        .&&. endpointAvailable @"returnNFT" contract (Trace.walletInstanceTag $ toMockWallet  wallet2)
         ) $ void (Trace.activateContractWallet w1 contract)
 
         , checkPredicate "Can lock NFT and mint fractional tokens"
@@ -80,9 +80,9 @@ successFullFractionalizationTrace = do
 
     void $ Trace.waitNSlots 1
 
-    Trace.callEndpoint @"1-fractionNFT" h1 Fracada.ToFraction { Fracada.fractions = fractions
+    Trace.callEndpoint @"fractionNFT" h1 Fracada.ToFraction { Fracada.fractions = fractions
                                                               , Fracada.fractionTokenName = fractionTokenName }
     void $ Trace.waitNSlots 1
 
-    -- Trace.callEndpoint @"2-returnNFT" h2 nftAssetClass
+    -- Trace.callEndpoint @"returnNFT" h2 nftAssetClass
     -- void $ Trace.waitNSlots 1

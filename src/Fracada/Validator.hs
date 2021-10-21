@@ -15,7 +15,6 @@
 
 module Fracada.Validator where
 
-import           Data.Maybe             (fromJust)
 import           GHC.Generics           (Generic)
 import           Ledger                 hiding (singleton)
 import qualified Ledger.Crypto          as Crypto
@@ -64,7 +63,7 @@ PlutusTx.makeIsDataIndexed ''FractionNFTParameters [('FractionNFTParameters,0)]
 data FractionNFTDatum = FractionNFTDatum {
       tokensClass    :: !AssetClass,
       totalFractions :: !Integer
-    } deriving (Generic, Show, Eq)
+    } deriving (Generic, Show)
 
 PlutusTx.makeLift ''FractionNFTDatum
 PlutusTx.makeIsDataIndexed ''FractionNFTDatum [('FractionNFTDatum,0)]
@@ -118,6 +117,14 @@ valueWithin = txOutValue . txInInfoResolved
 datumToData :: (PlutusTx.FromData a) => Datum -> Maybe a
 datumToData datum = PlutusTx.fromBuiltinData $ PlutusTx.toBuiltinData (getDatum datum)
 
+{-# INLINABLE findNewOwnDatum #-}
+findNewOwnDatum :: ScriptContext -> Datum
+findNewOwnDatum ctx = let
+              txInfo = scriptContextTxInfo ctx
+              ownDatumHash = snd $ ownHashes ctx
+            in
+              snd.head $ filter (\(h,_) -> h == ownDatumHash) $ txInfoData txInfo
+
 {-# INLINABLE fractionNftValidator #-}
 fractionNftValidator :: FractionNFTParameters -> FractionNFTDatum -> Maybe AddToken -> ScriptContext -> Bool
 fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorizedPubKeys, minSigRequired } FractionNFTDatum{tokensClass, totalFractions} redeemer ctx =
@@ -130,36 +137,34 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
     if isJust redeemer then
       let
         Just AddToken {newToken, signatures', message} = redeemer
+        Just FractionNFTDatum{tokensClass=tc', totalFractions= tf'} = datumToData $ findNewOwnDatum ctx
       in
         if forgedTokens >0 then
+            -- minting more tokens, signatures are required
             let
-              -- minting more tokens, signatures are required
               requiredSignatures = validateSignatures authorizedPubKeys minSigRequired signatures' message
               -- keep the NFTs
               valuePreserved = valueInContract == currentValueInContract
               -- update total count
-              (_, ownDatumHash) = ownHashes ctx
-              [(_,newDatum)] =  filter (\(h,d) -> h /= ownDatumHash) $ txInfoData txInfo
-              Just FractionNFTDatum{tokensClass=tc', totalFractions= tf'} = datumToData newDatum
               datumUpdated = tc' == tokensClass && tf' == totalFractions + forgedTokens
             in
               traceIfFalse "not enough signatures for minting"  requiredSignatures &&
-              traceIfFalse "contract value not preserved"  valuePreserved
-              && traceIfFalse "datum not updated"  datumUpdated
+              traceIfFalse "contract value not preserved"  valuePreserved  &&
+              traceIfFalse "datum not updated"  datumUpdated
         else
-            -- add new tokens to the lock
+          -- add new tokens to the lock
           let
             newTokenValueOf val = assetClassValueOf val newToken
             oldValue = newTokenValueOf $ valueWithin $ findOwnInput' ctx
             newValue = newTokenValueOf valueInContract
             requiredSignatures = validateSignatures authorizedPubKeys minSigRequired signatures' message
             valueIncreased = oldValue < newValue
-            -- base token preserved
           in
-            traceIfFalse "not enough signatures for redeeming"  requiredSignatures &&
-            traceIfFalse "no new value " (not $ isZero $ valueProduced txInfo ) &&
-            traceIfFalse "token preserved " (not $ isZero $ valueInContract ) &&
-            traceIfFalse "Tokens not added" valueIncreased
+            traceIfFalse "not enough signatures for redeeming"  requiredSignatures
+            && traceIfFalse "no new value " (not $ isZero $ valueProduced txInfo )
+            && traceIfFalse "token preserved " (not $ isZero $ valueInContract )
+            && traceIfFalse "Tokens not added" valueIncreased
+            && traceIfFalse "datum not preserved" ( tokensClass == tc' && totalFractions == tf' )
     else
       let
           -- make sure the asset(s) are returned

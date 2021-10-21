@@ -19,6 +19,7 @@ import           Fracada.Offchain
 import           Fracada.Validator
 import           Ledger.Ada             as Ada
 import           Ledger.CardanoWallet   as CW
+import           Ledger.Crypto          (PrivateKey)
 import           Ledger.Value           as Value
 import           Plutus.Trace.Emulator  as Emulator
 import           PlutusTx.Prelude       hiding (Semigroup (..), unless)
@@ -47,7 +48,7 @@ w3 = CW.knownWallet 3
 wallets :: [MockWallet]
 wallets = [w1,w2,w3]
 
---privKeys :: [PrivateKey]
+privKeys :: [PrivateKey]
 privKeys = map CW.privateKey wallets
 
 minSigs :: Integer
@@ -78,10 +79,10 @@ scenario1 = do
     let
         toFraction = ToFraction { fractions = 10, fractionTokenName = tokenName "Frac" }
 
-    callEndpoint @"1-fractionNFT" h1 toFraction
+    callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
 
-    callEndpoint @"2-returnNFT" h1 ()
+    callEndpoint @"returnNFT" h1 ()
     void $ Emulator.waitNSlots 1
 
 -- lock, add tokens, and unlock
@@ -95,14 +96,18 @@ scenario2 = do
         (Message bsMsg) = message
         msgHash = hashMessage message
         sigs = map (sign msgHash) privKeys
-        newToken = AddNFT { asset= nft2, sigs, msg= bsMsg}
+        newToken = AddNFT { an_asset= nft2, an_sigs= sigs, an_msg= bsMsg}
+        mintMore = MintMore { mm_count= 20, mm_sigs= sigs, mm_msg= bsMsg}
 
-    -- callEndpoint @"1-lockNFT" h1 nft
-    callEndpoint @"1-fractionNFT" h1 toFraction
+    -- callEndpoint @"lockNFT" h1 nft
+    callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
 
-    callEndpoint @"3-addNFT" h1 newToken
+    callEndpoint @"addNFT" h1 newToken
     void $ Emulator.waitNSlots 1
 
-    callEndpoint @"2-returnNFT" h1 ()
+    callEndpoint @"mintMoreTokens" h1 mintMore
     void $ Emulator.waitNSlots 1
+
+    callEndpoint @"returnNFT" h1 ()
+    -- void $ Emulator.waitNSlots 1
