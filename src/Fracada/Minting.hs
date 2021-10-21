@@ -43,7 +43,7 @@ mintFractionTokens fractionNFTScript asset fractionTokenName numberOfFractions c
         assetIsReturned = assetClassValueOf (valueProduced info) asset > 0
       in
         traceIfFalse "Asset not returned" assetIsReturned           &&
-        traceIfFalse "wrong fraction tokens burned" ( mintedAmount == negate numberOfFractions)
+        traceIfFalse "wrong fraction tokens burned" ( mintedAmount == numberOfFractions)
     else
       False
 

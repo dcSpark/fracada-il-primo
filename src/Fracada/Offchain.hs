@@ -107,7 +107,7 @@ fractionNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, 
                 Constraints.mustPayToOtherScript (fractionNftValidatorHash params) datum valueToScript <>
                 payBackTokens
     ledgerTx <- submitTxConstraintsWith @Void lookups tx
-    void $ awaitTxConfirmed $ txId ledgerTx
+    void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "forged %s for NFT %s" (show fractions) (show initTokenClass)
 
 returnNFT :: FractionNFTParameters -> () -> Contract w FracNFTSchema Text ()
@@ -155,7 +155,7 @@ returnNFT params@FractionNFTParameters{initTokenClass} _ = do
                 Constraints.mustPayToPubKey pkh valueToWallet
 
     ledgerTx <- submitTxConstraintsWith @Void lookups tx
-    void $ awaitTxConfirmed $ txId ledgerTx
+    void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "burnt %s" (show totalFractions)
 
 -- maybe is already there
@@ -214,7 +214,7 @@ mintMoreTokens params MintMore{mm_count, mm_sigs, mm_msg} = do
                 collectFromScript utxosAtValidator redeemer <>
                 payBackTokens
     ledgerTx <- submitTxConstraintsWith @Fractioning lookups tx
-    void $ awaitTxConfirmed $ txId ledgerTx
+    void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "forged %s extra tokens, total %s " (show mm_count) (show $ currentFractions + mm_count)
 
 endpoints :: FractionNFTParameters ->  Contract () FracNFTSchema Text ()

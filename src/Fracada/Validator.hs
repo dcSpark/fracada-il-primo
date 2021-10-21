@@ -122,8 +122,12 @@ findNewOwnDatum :: ScriptContext -> Datum
 findNewOwnDatum ctx = let
               txInfo = scriptContextTxInfo ctx
               ownDatumHash = snd $ ownHashes ctx
+              oDatum = findDatum ownDatumHash txInfo
             in
-              snd.head $ filter (\(h,_) -> h == ownDatumHash) $ txInfoData txInfo
+              case oDatum of
+                Just datum -> datum
+                Nothing    -> traceError "New datum not found"
+
 
 {-# INLINABLE fractionNftValidator #-}
 fractionNftValidator :: FractionNFTParameters -> FractionNFTDatum -> Maybe AddToken -> ScriptContext -> Bool
@@ -133,11 +137,21 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
     valueInContract = valueLockedBy txInfo (ownHash ctx)
     currentValueInContract = valueWithin $ findOwnInput' ctx
     forgedTokens = assetClassValueOf (txInfoMint txInfo) tokensClass
+    outputDatum :: FractionNFTDatum
+    (ownOutput, outputDatum) = case getContinuingOutputs ctx of
+        [o] -> case txOutDatumHash o of
+            Nothing   -> traceError "wrong output type"
+            Just h -> case findDatum h txInfo of
+                Nothing        -> traceError "datum not found"
+                Just (Datum d) ->  case PlutusTx.fromBuiltinData d of
+                    Just ad' -> (o, ad')
+                    Nothing  -> traceError "error decoding data"
+        _   -> traceError "expected exactly one continuing output"
   in
     if isJust redeemer then
       let
         Just AddToken {newToken, signatures', message} = redeemer
-        Just FractionNFTDatum{tokensClass=tc', totalFractions= tf'} = datumToData $ findNewOwnDatum ctx
+        FractionNFTDatum{tokensClass=tc', totalFractions= tf'} = outputDatum
       in
         if forgedTokens >0 then
             -- minting more tokens, signatures are required
