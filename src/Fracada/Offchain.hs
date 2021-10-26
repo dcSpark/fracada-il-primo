@@ -173,9 +173,10 @@ addNFT params AddNFT{an_asset, an_sigs, an_msg} = do
 
     previousDatum <- extractData nftTx
     let
-        redeemer = Just AddToken { newToken=an_asset,signatures'=an_sigs, message= Message an_msg }
+        redeemer = Just AddToken { newToken=an_asset,signatures'=an_sigs, message'= Message  an_msg }
         validatorScript = fractionNftValidatorInstance params
         tx       = collectFromScript utxosAtValidator redeemer <> mustPayToTheScript previousDatum valueToScript
+    Contract.logInfo @String $ printf "message %s" (show an_msg)
     void $ submitTxConstraintsSpending validatorScript utxosAtValidator tx
     Contract.logInfo @String $ printf "add new tokens %s" (show an_asset)
 
@@ -202,7 +203,7 @@ mintMoreTokens params MintMore{mm_count, mm_sigs, mm_msg} = do
 
       -- preserve NFTs
       valueToScript = valueOfTxs utxosAtValidator
-      redeemer = Just AddToken { newToken=tokensClass,signatures'=mm_sigs, message= Message mm_msg }
+      redeemer = Just AddToken { newToken=tokensClass,signatures'=mm_sigs, message'= Message mm_msg }
 
       --build the constraints and submit the transaction
       validator = fractionNftValidatorInstance params

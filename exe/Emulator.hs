@@ -15,6 +15,7 @@ import           Control.Monad          hiding (fmap)
 import qualified Data.ByteString.Char8  as C
 import           Data.Default           (Default (..))
 import qualified Data.Map               as Map
+import qualified Data.Text              as Text
 import           Fracada.Offchain
 import           Fracada.Validator
 import           Ledger.Ada             as Ada
@@ -23,7 +24,8 @@ import           Ledger.Crypto          (PrivateKey)
 import           Ledger.Value           as Value
 import           Plutus.Trace.Emulator  as Emulator
 import           PlutusTx.Prelude       hiding (Semigroup (..), unless)
-import           Prelude                (IO, (<>))
+import           Prelude                (IO, putStrLn, show, (<>))
+import           Text.Printf            (printf)
 import           Wallet.Emulator.Wallet
 
 nftCurrency :: CurrencySymbol
@@ -92,7 +94,8 @@ scenario2 = do
     void $ Emulator.waitNSlots 1
     let
         toFraction = ToFraction { fractions = 10, fractionTokenName = tokenName "Frac" }
-        message = Message $ toBuiltin $ C.pack $ "bb7cd5359aa4de1dc9725fb7d8283922185d1cdbfe5fdf35df46c028.NFT2"
+        -- message = Message $ encodeUtf8 $ Text.pack "bb7cd5359aa4de1dc9725fb7d8283922185d1cdbfe5fdf35df46c028.NFT2"
+        message = Message  "bb7cd5359aa4de1dc9725fb7d8283922185d1cdbfe5fdf35df46c028.NFT2"
         (Message bsMsg) = message
         msgHash = hashMessage message
         sigs = map (sign msgHash) privKeys

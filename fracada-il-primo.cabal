@@ -28,6 +28,7 @@ library
                      , text
                      , playground-common
                      , plutus-chain-index
+                     , base16-bytestring -any,
 
   default-language:   Haskell2010
   default-extensions: DataKinds
@@ -76,6 +77,7 @@ executable           Emulator
                     , lens
                     , data-default
                     , tasty
+                    , base16-bytestring -any,
   default-language:   Haskell2010
   default-extensions: DataKinds
                       DeriveAnyClass
