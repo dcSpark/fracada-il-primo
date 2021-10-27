@@ -12,20 +12,19 @@
 {-# LANGUAGE TypeOperators       #-}
 
 import           Control.Monad          hiding (fmap)
-import qualified Data.ByteString.Char8  as C
 import           Data.Default           (Default (..))
 import qualified Data.Map               as Map
-import qualified Data.Text              as Text
+import           Fracada.Minting
 import           Fracada.Offchain
 import           Fracada.Validator
+import           Ledger                 hiding (singleton)
 import           Ledger.Ada             as Ada
 import           Ledger.CardanoWallet   as CW
-import           Ledger.Crypto          (PrivateKey)
 import           Ledger.Value           as Value
 import           Plutus.Trace.Emulator  as Emulator
+import           PlutusTx.IsData
 import           PlutusTx.Prelude       hiding (Semigroup (..), unless)
-import           Prelude                (IO, putStrLn, show, (<>))
-import           Text.Printf            (printf)
+import           Prelude                (IO, (<>))
 import           Wallet.Emulator.Wallet
 
 nftCurrency :: CurrencySymbol
@@ -68,10 +67,12 @@ main = do
     runEmulatorTraceIO' def emCfg scenario1
     runEmulatorTraceIO' def emCfg scenario2
 
+
 emCfg :: EmulatorConfig
 emCfg = EmulatorConfig (Left $ Map.fromList [(toMockWallet w, v) | w <- [w1, w2, w3]]) def def
     where
         v = Ada.lovelaceValueOf 1000_000_000 <> assetClassValue nft 1  <> assetClassValue nft2 1
+
 
 -- lock and unlock
 scenario1 :: EmulatorTrace ()
@@ -93,14 +94,26 @@ scenario2 = do
     h1 <- activateContractWallet (toMockWallet w1) $ endpoints contractParams
     void $ Emulator.waitNSlots 1
     let
-        toFraction = ToFraction { fractions = 10, fractionTokenName = tokenName "Frac" }
-        -- message = Message $ encodeUtf8 $ Text.pack "bb7cd5359aa4de1dc9725fb7d8283922185d1cdbfe5fdf35df46c028.NFT2"
-        message = Message  "bb7cd5359aa4de1dc9725fb7d8283922185d1cdbfe5fdf35df46c028.NFT2"
-        (Message bsMsg) = message
-        msgHash = hashMessage message
-        sigs = map (sign msgHash) privKeys
-        newToken = AddNFT { an_asset= nft2, an_sigs= sigs, an_msg= bsMsg}
-        mintMore = MintMore { mm_count= 20, mm_sigs= sigs, mm_msg= bsMsg}
+
+        signDatum fracDatum = map (sign msgHash) privKeys
+                        where
+                            datum' = Datum $ toBuiltinData fracDatum
+                            DatumHash msgHash = datumHash datum'
+
+
+        tknName = tokenName "Frac"
+        toFraction = ToFraction { fractions = 10, fractionTokenName = tknName }
+         --find the minting script instance
+        mintingScript = mintFractionTokensPolicy contractParams tknName
+        -- define the value to mint (amount of tokens) and be paid to signer
+        currency = scriptCurrencySymbol mintingScript
+        tokenClass = assetClass currency tknName
+
+        expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, nftCount=2}
+        newToken = AddNFT { an_asset= nft2, an_sigs= signDatum expectedDatumAtAdd}
+
+        expectedDatumAtMint = expectedDatumAtAdd { totalFractions = 30 }
+        mintMore = MintMore { mm_count= 20, mm_sigs= signDatum expectedDatumAtMint }
 
     -- callEndpoint @"lockNFT" h1 nft
     callEndpoint @"fractionNFT" h1 toFraction
