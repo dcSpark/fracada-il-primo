@@ -16,7 +16,9 @@ import qualified Data.ByteString.Short      as SBS
 import           Ledger                     (datumHash)
 
 
-import           Fracada
+import           Fracada.Minting
+import           Fracada.Offchain
+import           Fracada.Validator
 
 import           Data.Aeson
 import           Data.String                (IsString (..))

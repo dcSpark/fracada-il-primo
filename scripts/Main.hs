@@ -13,7 +13,7 @@ import           Options.Applicative
 import           Plutus.Contract.Wallet (ExportTx (..))
 import           Plutus.Trace           (Command (..), ScriptsConfig (..),
                                          showStats, writeScriptsTo)
-import qualified Spec.Fracada           as Fracada
+import qualified Spec.Scenarios         as Scenarios
 
 writeWhat :: Command -> String
 writeWhat (Scripts FullyAppliedValidators) = "scripts (fully applied)"
@@ -65,7 +65,7 @@ writeScripts :: ScriptsConfig -> IO ()
 writeScripts config = do
     putStrLn $ "Writing " <> writeWhat (scCommand config) <> " to: " <> scPath config
     (Sum size, exBudget) <- foldMap (uncurry3 (writeScriptsTo config))
-        [  ("fracada-success", Fracada.successFullFractionalizationTrace, def)
+        [  ("fracada-success", Scenarios.scenario2, def)
           --, ("fracada-unsuccess", Fracada.unSuccessfulFractionalization, def)
         ]
     if size > 0 then

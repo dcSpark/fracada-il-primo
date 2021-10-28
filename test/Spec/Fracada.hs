@@ -5,84 +5,31 @@
 
 module Spec.Fracada (
     useCaseTests
-    , successFullFractionalizationTrace
     ) where
 
+import           Control.Lens
 import           Control.Monad          hiding (fmap)
-import qualified Ledger
-import           Ledger.Value           as Value
+import qualified Fracada.Offchain       as Fracada
 import           Plutus.Contract.Test
 import qualified Plutus.Trace.Emulator  as Trace
+import qualified Spec.Scenarios         as E
 import           Test.Tasty
-
-import qualified Fracada.Offchain       as Fracada
-import           Fracada.Validator
-import           Ledger.CardanoWallet   as CW
 import           Wallet.Emulator.Wallet
-
--- Contracts' parameters
-
--- for EmulatorTrace it must be a 28-byte length ByteString
-nftSymbol :: Ledger.CurrencySymbol
-nftSymbol = currencySymbol "0123456789012345678901234567"
-
-nftName :: Ledger.TokenName
-nftName = TokenName "fractionNFT"
-
-nftAssetClass :: Ledger.AssetClass
-nftAssetClass = Value.assetClass nftSymbol nftName
-
-fractionTokenName :: Ledger.TokenName
-fractionTokenName  = "fractionToken"
-
-fractions :: Integer
-fractions = 100
-
-wallet1:: MockWallet
-wallet1 = CW.knownWallet 1
-wallet2:: MockWallet
-wallet2 = CW.knownWallet 2
-wallet3:: MockWallet
-wallet3 = CW.knownWallet 3
-
-pks :: [Ledger.PubKey]
-pks = map CW.pubKey [wallet1,wallet2,wallet3]
-
-minSigs :: Integer
-minSigs = 2
-
-contractParams :: FractionNFTParameters
-contractParams =  FractionNFTParameters {
-      initTokenClass  = nftAssetClass,
-      authorizedPubKeys = pks,
-      minSigRequired   = minSigs
-    }
 
 useCaseTests :: TestTree
 useCaseTests =
-    let contract = Fracada.endpoints contractParams in
+    let
+        contract = Fracada.endpoints E.contractParams
+        options = defaultCheckOptions & emulatorConfig .~ E.emCfg
+    in
         testGroup "fracada"
-        [ checkPredicate "Expose 'fractionNFT' and 'returnNFT' endpoints"
-        (endpointAvailable @"fractionNFT" contract (Trace.walletInstanceTag $ toMockWallet wallet1)
-        .&&. endpointAvailable @"returnNFT" contract (Trace.walletInstanceTag $ toMockWallet  wallet2)
-        ) $ void (Trace.activateContractWallet w1 contract)
+        [ checkPredicate "Expose endpoints"
+        (endpointAvailable @"fractionNFT" contract (Trace.walletInstanceTag $ toMockWallet E.w1)
+        .&&. endpointAvailable @"returnNFT" contract (Trace.walletInstanceTag $ toMockWallet  E.w1)
+        .&&. endpointAvailable @"addNFT" contract (Trace.walletInstanceTag $ toMockWallet  E.w1)
+        .&&. endpointAvailable @"mintMoreTokens" contract (Trace.walletInstanceTag $ toMockWallet  E.w1)
+        ) $ void (Trace.activateContractWallet (toMockWallet E.w1) contract)
+        , checkPredicateOptions options "Can lock NFT, mint fractional tokens, and exchange the NFT back when burning the tokens" assertNoFailedTransactions E.scenario1
+        , checkPredicateOptions options "Full scenario (lock NFT with minting, add more NFTs, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario2
 
-        , checkPredicate "Can lock NFT and mint fractional tokens"
-        assertNoFailedTransactions
-        successFullFractionalizationTrace
-
-        ]
-
-successFullFractionalizationTrace :: Trace.EmulatorTrace ()
-successFullFractionalizationTrace = do
-    h1 <- Trace.activateContractWallet (w1) $ Fracada.endpoints contractParams
-    -- h2 <- Trace.activateContractWallet (knownWallet 2) Fracada.endpoints
-
-    void $ Trace.waitNSlots 1
-
-    Trace.callEndpoint @"fractionNFT" h1 Fracada.ToFraction { Fracada.fractions = fractions
-                                                              , Fracada.fractionTokenName = fractionTokenName }
-    void $ Trace.waitNSlots 1
-
-    -- Trace.callEndpoint @"returnNFT" h2 nftAssetClass
-    -- void $ Trace.waitNSlots 1
+         ]
