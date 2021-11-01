@@ -10,6 +10,9 @@ module Spec.Fracada (
 import           Control.Lens
 import           Control.Monad          hiding (fmap)
 import qualified Fracada.Offchain       as Fracada
+import           Ledger.Index           (ValidationError (ScriptFailure))
+import           Ledger.Scripts         (ScriptError (EvaluationError))
+import           Plutus.Contract        (Contract, ContractError)
 import           Plutus.Contract.Test
 import qualified Plutus.Trace.Emulator  as Trace
 import qualified Spec.Scenarios         as E
@@ -31,5 +34,7 @@ useCaseTests =
         ) $ void (Trace.activateContractWallet (toMockWallet E.w1) contract)
         , checkPredicateOptions options "Can lock NFT, mint fractional tokens, and exchange the NFT back when burning the tokens" assertNoFailedTransactions E.scenario1
         , checkPredicateOptions options "Full scenario (lock NFT with minting, add more NFTs, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario2
+        , checkPredicateOptions options "Can't mint if not locked" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Asset not locked", "PT5"] _) -> True; _ -> False  })) E.notLocked
+        , checkPredicateOptions options "Can't return the nft if fractional tokens aren't burned" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not burned", "PT5"] _) -> True; _ -> False  })) E.returnNFTNoFrac
 
          ]

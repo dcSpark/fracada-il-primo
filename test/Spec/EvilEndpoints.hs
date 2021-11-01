@@ -11,7 +11,7 @@
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 
-module Fracada.Offchain where
+module Spec.EvilEndpoints where
 
 import           Control.Monad       hiding (fmap)
 import           Data.Aeson          (FromJSON, ToJSON)
@@ -32,56 +32,12 @@ import           Prelude             (Semigroup (..), String, show)
 import           Text.Printf         (printf)
 
 import           Fracada.Minting
+import           Fracada.Offchain
 import           Fracada.Validator
 import qualified Prelude             as Prelude
 
-data ToFraction = ToFraction
-    {
-      fractions         :: Integer
-    , fractionTokenName :: TokenName
-    } deriving (Generic, ToJSON, FromJSON, ToSchema, Prelude.Show)
-
-
-data AddNFT = AddNFT
-    {
-      an_asset :: AssetClass
-    , an_sigs  :: [Signature]
-    } deriving (Generic, ToJSON, FromJSON, ToSchema)
-
-data MintMore = MintMore
-    {
-      mm_count :: Integer
-    , mm_sigs  :: [Signature]
-    } deriving (Generic, ToJSON, FromJSON, ToSchema)
-
-type FracNFTSchema = Endpoint "fractionNFT" ToFraction
-    .\/ Endpoint "returnNFT" ()
-    .\/ Endpoint "addNFT" AddNFT
-    .\/ Endpoint "mintMoreTokens" MintMore
-    .\/ Endpoint "currentDatumHash" ()
-
-
-getDatumHash :: ChainIndexTxOut -> Either DatumHash Datum
-getDatumHash PublicKeyChainIndexTxOut {}             = throwError "no datum for a txout of a public key address"
-getDatumHash ScriptChainIndexTxOut { _ciTxOutDatum } =  _ciTxOutDatum
-
-extractData :: (PlutusTx.FromData a) => ChainIndexTxOut -> Contract w s Text a
-extractData o = do
-                  (Datum e) <- either getDatum pure $ getDatumHash o
-                  maybe (throwError "datum hash wrong type")
-                        pure
-                        (PlutusTx.fromBuiltinData e)
-                where
-                    getDatum :: DatumHash -> Contract w s Text Datum
-                    getDatum dh =
-                      datumFromHash dh >>= \case Nothing -> throwError "datum not found"
-                                                 Just d  -> pure d
-
-
-
-
-fractionNFT :: FractionNFTParameters -> ToFraction -> Contract w FracNFTSchema Text ()
-fractionNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, fractionTokenName} = do
+mintTokensNoNFT :: FractionNFTParameters -> ToFraction -> Contract w FracNFTEvilSchema Text ()
+mintTokensNoNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, fractionTokenName} = do
   -- pay nft to contract
   -- pay minted tokens back to signer
     pkh   <- Contract.ownPubKeyHash
@@ -94,11 +50,9 @@ fractionNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, 
       currency = scriptCurrencySymbol mintingScript
       tokensToMint =  Value.singleton currency fractionTokenName fractions
       payBackTokens = mustPayToPubKey pkh tokensToMint
-      -- value of NFT
-      valueToScript = assetClassValue initTokenClass 1
+
       -- keep the minted amount and asset class in the datum
-      nftAsset =  assetClass currency fractionTokenName
-      datum = Datum $ toBuiltinData FractionNFTDatum{ tokensClass= nftAsset, totalFractions = fractions, newNftClass = nftAsset}
+      datum = Datum $ toBuiltinData FractionNFTDatum{ tokensClass= assetClass currency fractionTokenName, totalFractions = fractions, newNftClass = assetClass "aa" "B" }
 
       mintRedeemer = Redeemer $ toBuiltinData fractions
       --build the constraints and submit the transaction
@@ -106,14 +60,13 @@ fractionNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, 
       lookups = Constraints.mintingPolicy mintingScript  <>
                 Constraints.otherScript validator
       tx      = Constraints.mustMintValueWithRedeemer mintRedeemer tokensToMint  <>
-                Constraints.mustPayToOtherScript (fractionNftValidatorHash params) datum valueToScript <>
                 payBackTokens
     ledgerTx <- submitTxConstraintsWith @Void lookups tx
     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "forged %s for NFT %s" (show fractions) (show initTokenClass)
 
-returnNFT :: FractionNFTParameters -> () -> Contract w FracNFTSchema Text ()
-returnNFT params@FractionNFTParameters{initTokenClass} _ = do
+returnNFTNoFrac :: FractionNFTParameters -> () -> Contract w FracNFTEvilSchema Text ()
+returnNFTNoFrac params@FractionNFTParameters{initTokenClass} _ = do
   -- pay nft to signer
   -- burn tokens
     pkh   <- Contract.ownPubKeyHash
@@ -138,7 +91,7 @@ returnNFT params@FractionNFTParameters{initTokenClass} _ = do
       -- declare the fractional tokens to burn
       (_, fractionTokenName) = unAssetClass tokensClass
       tokensCurrency =  curSymbol params fractionTokenName
-      amountToBurn = negate totalFractions
+      amountToBurn = 0 --  negate totalFractions
       tokensToBurn =  Value.singleton tokensCurrency fractionTokenName amountToBurn
 
       emptyRedeemer = Nothing :: Maybe AddToken
@@ -160,28 +113,16 @@ returnNFT params@FractionNFTParameters{initTokenClass} _ = do
     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "burnt %s" (show totalFractions)
 
--- maybe is already there
-valueOfTxs :: Map.Map TxOutRef ChainIndexTxOut -> Value
-valueOfTxs utxos =  Prelude.foldl1 (Prelude.<>) $ map (_ciTxOutValue.snd ) $ Map.toList utxos
 
-currentDatumHash :: (AsContractError e) => FractionNFTParameters -> () -> Contract w s e ()
-currentDatumHash params _ = do
-                              utxosAtValidator <- utxosAt ( fractionNftValidatorAddress params)
-                              let
-                                theUtxo = snd.head.Map.toList $ utxosAtValidator
-                                dh = either id datumHash $ getDatumHash  theUtxo
-                              Contract.logInfo @String $ printf "current datum hash: %s" (show dh)
-
-
-addNFT :: FractionNFTParameters -> AddNFT -> Contract w FracNFTSchema Text ()
-addNFT params AddNFT{an_asset, an_sigs} = do
+addMoreNFT :: FractionNFTParameters -> AddNFT -> Contract w FracNFTEvilSchema Text ()
+addMoreNFT params AddNFT{an_asset, an_sigs} = do
     utxosAtValidator <- utxosAt ( fractionNftValidatorAddress params)
     let
       -- value of NFT
-      valueToScript = (valueOfTxs utxosAtValidator) <> assetClassValue an_asset 1
+      valueToScript = (valueOfTxs utxosAtValidator) <> assetClassValue an_asset 2
       nftTx = snd.head $ Map.toList utxosAtValidator
 
-    previousDatum <- extractData nftTx
+    previousDatum  <- extractData nftTx
     let
         --update datum incrementing the count of nfts
         updatedDatum = previousDatum { newNftClass = an_asset }
@@ -192,8 +133,8 @@ addNFT params AddNFT{an_asset, an_sigs} = do
     void $ submitTxConstraintsSpending validatorScript utxosAtValidator tx
     Contract.logInfo @String $ printf "added new NFT %s" (show an_asset)
 
-mintMoreTokens :: FractionNFTParameters -> MintMore -> Contract w FracNFTSchema Text ()
-mintMoreTokens params MintMore{mm_count, mm_sigs} = do
+mintExtraTokens :: FractionNFTParameters -> MintMore -> Contract w FracNFTEvilSchema Text ()
+mintExtraTokens params MintMore{mm_count, mm_sigs} = do
   -- pay nft to contract
   -- pay minted tokens back to signer
     pkh   <- Contract.ownPubKeyHash
@@ -206,7 +147,7 @@ mintMoreTokens params MintMore{mm_count, mm_sigs} = do
 
       -- define the value to mint (amount of tokens) and be paid to signer
       currency = scriptCurrencySymbol mintingScript
-      tokensToMint =  Value.singleton currency fractionTokenName mm_count
+      tokensToMint =  Value.singleton currency fractionTokenName (mm_count +1 )
       payBackTokens = mustPayToPubKey pkh tokensToMint
 
       -- keep the minted amount and asset class in the datum
@@ -230,15 +171,20 @@ mintMoreTokens params MintMore{mm_count, mm_sigs} = do
     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "forged %s extra tokens, total %s " (show mm_count) (show $ currentFractions + mm_count)
 
-endpoints :: FractionNFTParameters ->  Contract () FracNFTSchema Text ()
+
+
+type FracNFTEvilSchema = Endpoint "mintTokensNoNFT" ToFraction
+    .\/ Endpoint "returnNFTNoFrac" ()
+    .\/ Endpoint "addMoreNFT" AddNFT
+    .\/ Endpoint "mintExtraTokens" MintMore
+
+endpoints :: FractionNFTParameters ->  Contract () FracNFTEvilSchema Text ()
 endpoints params = forever
                 $ handleError logError
                 $ awaitPromise
-                $ fractionNFT' `select` burn' `select` addNFT' `select` mintMoreTokens' -- `select` currentDatumHash'
-  where
-    fractionNFT' = endpoint @"fractionNFT" $ fractionNFT params
-    burn' = endpoint @"returnNFT" $ returnNFT params
-    addNFT' = endpoint @"addNFT" $ addNFT params
-    mintMoreTokens' = endpoint @"mintMoreTokens" $ mintMoreTokens params
-    -- currentDatumHash' = endpoint @"currentDatumHash" $ currentDatumHash params
-
+                $ mintTokensNoNFT' `select` burn' `select` addNFT' `select` mintMoreTokens'
+          where
+            mintTokensNoNFT' = endpoint @"mintTokensNoNFT" $ mintTokensNoNFT params
+            burn' = endpoint @"returnNFTNoFrac" $ returnNFTNoFrac params
+            addNFT' = endpoint @"addMoreNFT" $ addMoreNFT params
+            mintMoreTokens' = endpoint @"mintExtraTokens" $ mintExtraTokens params

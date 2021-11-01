@@ -51,7 +51,7 @@ PlutusTx.makeIsDataIndexed ''FractionNFTParameters [('FractionNFTParameters,0)]
 data FractionNFTDatum = FractionNFTDatum {
       tokensClass    :: !AssetClass,
       totalFractions :: !Integer,
-      nftCount       :: !Integer
+      newNftClass    :: !AssetClass
     } deriving (Generic, Show)
 
 PlutusTx.makeLift ''FractionNFTDatum
@@ -136,8 +136,11 @@ ownNextDatumHash ctx =  case getContinuingOutputs ctx of
         _   -> traceError "expected exactly one continuing output"
 
 {-# INLINABLE fractionNftValidator #-}
+-- add asset class of latest nft we might not require the total count
+-- check that is not there alreay in the contract value
+-- and is only one
 fractionNftValidator :: FractionNFTParameters -> FractionNFTDatum -> Maybe AddToken -> ScriptContext -> Bool
-fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorizedPubKeys, minSigRequired } FractionNFTDatum{tokensClass, totalFractions, nftCount} redeemer ctx =
+fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorizedPubKeys, minSigRequired } FractionNFTDatum{tokensClass, totalFractions, newNftClass} redeemer ctx =
   let
     txInfo = scriptContextTxInfo ctx
     valueInContract = valueLockedBy txInfo (ownHash ctx)
@@ -148,6 +151,7 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
     if isJust redeemer then
       -- adding nfts or minting, signatures are required
       let
+        -- newToken is in the datum too, we should get rid of it
         Just AddToken {newToken, signatures' } = redeemer
         (newTokenCurrId, newTokenTokenNm) = unAssetClass newToken
 
@@ -158,18 +162,18 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
                         Just ad' -> ad'
                         Nothing  -> traceError "error decoding data"
 
-        FractionNFTDatum{tokensClass=tc', totalFractions= tf', nftCount=nftc' } = outputDatum
+        FractionNFTDatum{tokensClass=tc', totalFractions= tf', newNftClass=nftc' } = outputDatum
 
         -- validate the datum hash is properly signed
         requiredSignatures = validateSignatures authorizedPubKeys minSigRequired signatures' ownDatumHash
       in
-        if forgedTokens >0 then
+        if forgedTokens > 0 then -- edge cases when negative!!!
             -- minting more tokens
             let
               -- keep the NFTs
               valuePreserved = valueInContract == currentValueInContract
               -- update total count
-              datumUpdated = tc' == tokensClass && tf' == totalFractions + forgedTokens && nftc' == nftCount
+              datumUpdated = tc' == tokensClass && tf' == (totalFractions + forgedTokens) && nftc' == newNftClass
 
               expectedMinted = assetClassValue tokensClass forgedTokens
             in
@@ -177,7 +181,9 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
               traceIfFalse "contract value not preserved"  valuePreserved  &&
               traceIfFalse "datum not updated"  datumUpdated &&
               traceIfFalse "Unexpected minted amount" (txInfoMint txInfo == expectedMinted)
-
+        else if forgedTokens < 0 then
+          -- we don't allow partial burn of tokens
+          False
         else
           -- add new tokens to the lock
           let
@@ -186,16 +192,21 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
 
             oldValue = newTokenValueOf $ valueWithin $ findOwnInput' ctx
             newValue = newTokenValueOf valueInContract
-            valueIncreased = oldValue  < newValue
-            datumUpdated = tc' == tokensClass && tf' == totalFractions + forgedTokens && nftc' == nftCount + 1
-
+            --ensure we add only one token each time
+            valueIncreased = oldValue +1 == newValue
+            --validate
+            datumUpdated = tc' == tokensClass && tf' == totalFractions && nftc' == newToken
             adaValue = toValue $ fromValue valueInContract
             [(currencyId', tokenName', _)] = flattenValue $ valueInContract - adaValue - currentValueInContract
             valueIncreaseMatchToken = newTokenCurrId == currencyId' && newTokenTokenNm == tokenName'
+            -- validate value is 1
+            -- validate the new token is not already present
+            tokenNotPresent = assetClassValueOf currentValueInContract newNftClass == 0
 
           in
             traceIfFalse "not enough signatures for redeeming"  requiredSignatures
             && traceIfFalse "no new value " (not $ isZero $ valueProduced txInfo )
+            && traceIfFalse "Token already added" tokenNotPresent
             && traceIfFalse "token preserved " (not $ isZero $ valueInContract )
             && traceIfFalse "Tokens not added" valueIncreased
             && traceIfFalse "datum not updated" datumUpdated
@@ -208,7 +219,7 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
         in
           traceIfFalse "NFT not returned" assetIsReturned &&
           traceIfFalse "Value locked in contract" ( isZero valueInContract ) &&
-          traceIfFalse "Tokens not burn" tokensBurnt
+          traceIfFalse "Tokens not burned" tokensBurnt
 
 
 fractionNftValidatorInstance ::  FractionNFTParameters -> Scripts.TypedValidator Fractioning
