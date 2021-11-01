@@ -12,7 +12,6 @@ import           Control.Monad          hiding (fmap)
 import qualified Fracada.Offchain       as Fracada
 import           Ledger.Index           (ValidationError (ScriptFailure))
 import           Ledger.Scripts         (ScriptError (EvaluationError))
-import           Plutus.Contract        (Contract, ContractError)
 import           Plutus.Contract.Test
 import qualified Plutus.Trace.Emulator  as Trace
 import qualified Spec.Scenarios         as E

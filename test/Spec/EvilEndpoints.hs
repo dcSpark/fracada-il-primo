@@ -13,28 +13,28 @@
 
 module Spec.EvilEndpoints where
 
-import           Control.Monad       hiding (fmap)
-import           Data.Aeson          (FromJSON, ToJSON)
-import qualified Data.Map            as Map
-import           Data.Text           (Text)
-import           Data.Void           (Void)
-import           GHC.Generics        (Generic)
-import           Ledger              hiding (singleton)
-import           Ledger.Constraints  as Constraints
-import           Ledger.Value        as Value
-import           Playground.Contract (ToSchema)
-import           Plutus.Contract     as Contract
-import qualified PlutusTx
-import           PlutusTx.Builtins   as Builtins
+import           Control.Monad      hiding (fmap)
+-- import           Data.Aeson          (FromJSON, ToJSON)
+import qualified Data.Map           as Map
+import           Data.Text          (Text)
+import           Data.Void          (Void)
+-- import           GHC.Generics        (Generic)
+import           Ledger             hiding (singleton)
+import           Ledger.Constraints as Constraints
+import           Ledger.Value       as Value
+-- import           Playground.Contract (ToSchema)
+import           Plutus.Contract    as Contract
+-- import qualified PlutusTx
+-- import           PlutusTx.Builtins   as Builtins
 import           PlutusTx.IsData
-import           PlutusTx.Prelude    hiding (Semigroup (..), unless)
-import           Prelude             (Semigroup (..), String, show)
-import           Text.Printf         (printf)
+import           PlutusTx.Prelude   hiding (Semigroup (..), unless)
+import           Prelude            (Semigroup (..), String, show)
+import           Text.Printf        (printf)
 
 import           Fracada.Minting
 import           Fracada.Offchain
 import           Fracada.Validator
-import qualified Prelude             as Prelude
+-- import qualified Prelude             as Prelude
 
 mintTokensNoNFT :: FractionNFTParameters -> ToFraction -> Contract w FracNFTEvilSchema Text ()
 mintTokensNoNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, fractionTokenName} = do
@@ -50,9 +50,6 @@ mintTokensNoNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractio
       currency = scriptCurrencySymbol mintingScript
       tokensToMint =  Value.singleton currency fractionTokenName fractions
       payBackTokens = mustPayToPubKey pkh tokensToMint
-
-      -- keep the minted amount and asset class in the datum
-      datum = Datum $ toBuiltinData FractionNFTDatum{ tokensClass= assetClass currency fractionTokenName, totalFractions = fractions, newNftClass = assetClass "aa" "B" }
 
       mintRedeemer = Redeemer $ toBuiltinData fractions
       --build the constraints and submit the transaction

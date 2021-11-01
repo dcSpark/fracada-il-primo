@@ -58,7 +58,7 @@ library
 executable           Emulator
   main-is:           Emulator.hs
   hs-source-dirs:    exe, src, test
-  other-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain, Spec.Scenarios
+  other-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain, Spec.Scenarios, Spec.EvilEndpoints
   build-depends:     base
                     , fracada-il-primo
                     , aeson
@@ -152,9 +152,10 @@ executable           fracada-scripts
   main-is:           Main.hs
   hs-source-dirs:    scripts, test
 
-  other-modules:     Spec.Fracada, Spec.Scenarios
+  other-modules:     Spec.Fracada, Spec.Scenarios, Spec.EvilEndpoints
   ghc-options:       -Wall -Wnoncanonical-monad-instances -Wincomplete-uni-patterns -Wincomplete-record-updates -Wredundant-constraints -Widentities -rtsopts -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
   build-depends:     base
+                    , aeson
                     , cardano-api
                     , fracada-il-primo
                     , optparse-applicative
@@ -181,6 +182,7 @@ executable           fracada-scripts
                     , foldl
                     , streaming
                     , base16-bytestring
+                    , playground-common
   default-language:   Haskell2010
   default-extensions: DataKinds
                       DeriveAnyClass
@@ -207,7 +209,7 @@ test-suite          fracada-test
   type:             exitcode-stdio-1.0
   main-is:          Spec.hs
   hs-source-dirs:   test, exe, src
-  other-modules:    Spec.Fracada, Spec.Scenarios, Fracada.Minting, Fracada.Validator, Fracada.Offchain
+  other-modules:    Spec.Fracada, Spec.Scenarios, Fracada.Minting, Fracada.Validator, Fracada.Offchain, Spec.EvilEndpoints
   build-depends:     base
                     , fracada-il-primo
                     , aeson
