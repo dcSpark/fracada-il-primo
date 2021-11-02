@@ -144,7 +144,7 @@ mintExtraTokens params MintMore{mm_count, mm_sigs} = do
 
       -- define the value to mint (amount of tokens) and be paid to signer
       currency = scriptCurrencySymbol mintingScript
-      tokensToMint =  Value.singleton currency fractionTokenName (mm_count +1 )
+      tokensToMint =  Value.singleton currency fractionTokenName (mm_count + 1 )
       payBackTokens = mustPayToPubKey pkh tokensToMint
 
       -- keep the minted amount and asset class in the datum

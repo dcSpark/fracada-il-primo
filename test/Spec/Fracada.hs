@@ -33,7 +33,11 @@ useCaseTests =
         ) $ void (Trace.activateContractWallet (toMockWallet E.w1) contract)
         , checkPredicateOptions options "Can lock NFT, mint fractional tokens, and exchange the NFT back when burning the tokens" assertNoFailedTransactions E.scenario1
         , checkPredicateOptions options "Full scenario (lock NFT with minting, add more NFTs, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario2
+        , checkPredicateOptions options "No new NFTs (lock NFT with minting, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario2
         , checkPredicateOptions options "Can't mint if not locked" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Asset not locked", "PT5"] _) -> True; _ -> False  })) E.notLocked
         , checkPredicateOptions options "Can't return the nft if fractional tokens aren't burned" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not burned", "PT5"] _) -> True; _ -> False  })) E.returnNFTNoFrac
+        , checkPredicateOptions options "Can't mint fractional tokens" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["datum not updated", "PT5"] _) -> True; _ -> False  })) E.mintExtraTokens
+        , checkPredicateOptions options "Can't add unsigned nft" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["not enough signatures for redeeming", "PT5"] _) -> True; _ -> False  })) E.unsignedNFT
+        , checkPredicateOptions options "Can't add more than one token" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not added", "PT5"] _) -> True; _ -> False  })) E.addExtraToken
 
          ]

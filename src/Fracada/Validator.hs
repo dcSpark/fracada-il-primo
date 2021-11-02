@@ -167,7 +167,7 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
         -- validate the datum hash is properly signed
         requiredSignatures = validateSignatures authorizedPubKeys minSigRequired signatures' ownDatumHash
       in
-        if forgedTokens > 0 then -- edge cases when negative!!!
+        if forgedTokens > 0 then
             -- minting more tokens
             let
               -- keep the NFTs
