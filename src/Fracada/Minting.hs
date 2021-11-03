@@ -26,13 +26,16 @@ mintFractionTokens :: ValidatorHash -> AssetClass -> TokenName -> Integer -> Scr
 mintFractionTokens fractionNFTScript asset fractionTokenName numberOfFractions ctx =
   let
     info = scriptContextTxInfo ctx
+    -- find the minted value corresponding to this particular fraction token
     mintedAmount = case flattenValue (txInfoMint info) of
         [(cs, fractionTokenName', amt)] | cs == ownCurrencySymbol ctx && fractionTokenName' == fractionTokenName -> amt
         _                                                           -> 0
   in
     if mintedAmount > 0 then
+      -- minting
       let
         lockedByNFTfractionScript = valueLockedBy info fractionNFTScript
+        -- require that the nft is locked
         assetIsLocked = assetClassValueOf lockedByNFTfractionScript asset == 1
       in
         traceIfFalse "Asset not locked" assetIsLocked           &&

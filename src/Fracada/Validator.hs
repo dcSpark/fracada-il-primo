@@ -136,9 +136,6 @@ ownNextDatumHash ctx =  case getContinuingOutputs ctx of
         _   -> traceError "expected exactly one continuing output"
 
 {-# INLINABLE fractionNftValidator #-}
--- add asset class of latest nft we might not require the total count
--- check that is not there alreay in the contract value
--- and is only one
 fractionNftValidator :: FractionNFTParameters -> FractionNFTDatum -> Maybe AddToken -> ScriptContext -> Bool
 fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorizedPubKeys, minSigRequired } FractionNFTDatum{tokensClass, totalFractions, newNftClass} redeemer ctx =
   let
@@ -168,19 +165,19 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
         requiredSignatures = validateSignatures authorizedPubKeys minSigRequired signatures' ownDatumHash
       in
         if forgedTokens > 0 then
-            -- minting more tokens
+            -- minting more fractional tokens path
             let
-              -- keep the NFTs
+              -- keep the NFTs ( the value locked doesn't change)
               valuePreserved = valueInContract == currentValueInContract
-              -- update total count
+              -- update total count is the only change in the datum
               datumUpdated = tc' == tokensClass && tf' == (totalFractions + forgedTokens) && nftc' == newNftClass
-
-              expectedMinted = assetClassValue tokensClass forgedTokens
+              -- no other token is minted
+              mintOnlyExpectedTokens = txInfoMint txInfo == assetClassValue tokensClass forgedTokens
             in
               traceIfFalse "not enough signatures for minting"  requiredSignatures &&
               traceIfFalse "contract value not preserved"  valuePreserved  &&
-              traceIfFalse "datum not updated"  datumUpdated &&
-              traceIfFalse "Unexpected minted amount" (txInfoMint txInfo == expectedMinted)
+              traceIfFalse "datum not updated forging tokens"  datumUpdated &&
+              traceIfFalse "Unexpected minted amount" mintOnlyExpectedTokens
         else if forgedTokens < 0 then
           -- we don't allow partial burn of tokens
           False
@@ -194,27 +191,32 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
             newValue = newTokenValueOf valueInContract
             --ensure we add only one token each time
             valueIncreased = oldValue +1 == newValue
-            --validate
+            -- the latest added token is the only change in the datum
             datumUpdated = tc' == tokensClass && tf' == totalFractions && nftc' == newToken
+
+            --extract the value increase
             adaValue = toValue $ fromValue valueInContract
-            [(currencyId', tokenName', _)] = flattenValue $ valueInContract - adaValue - currentValueInContract
-            valueIncreaseMatchToken = newTokenCurrId == currencyId' && newTokenTokenNm == tokenName'
-            -- validate value is 1
-            -- validate the new token is not already present
+            [(currencyId', tokenName', increaseAmount)] = flattenValue $ valueInContract - adaValue - currentValueInContract
+            -- the value increase should match the new token and should be only 1
+            valueIncreaseMatchToken = newTokenCurrId == currencyId' && newTokenTokenNm == tokenName' && increaseAmount == 1
+
+            -- validate the new token is not already added  (TODO: what if some UTxOs aren't included?)
             tokenNotPresent = assetClassValueOf currentValueInContract newNftClass == 0
 
           in
-            traceIfFalse "not enough signatures for redeeming"  requiredSignatures
+            traceIfFalse "not enough signatures to add tokens"  requiredSignatures
             && traceIfFalse "no new value " (not $ isZero $ valueProduced txInfo )
             && traceIfFalse "Token already added" tokenNotPresent
             && traceIfFalse "token preserved " (not $ isZero $ valueInContract )
             && traceIfFalse "Tokens not added" valueIncreased
-            && traceIfFalse "datum not updated" datumUpdated
+            && traceIfFalse "datum not updated adding NFTs" datumUpdated
             && traceIfFalse "Unexpected token" valueIncreaseMatchToken
     else
+      -- return all the NFTs
       let
-          -- make sure the asset(s) are returned
+          -- make sure the asset(s) are returned (TODO: what if some UTxOs aren't included?)
           assetIsReturned = assetClassValueOf (valueProduced txInfo) nftAsset > 0
+          -- make sure all the tokens are burned
           tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0
         in
           traceIfFalse "NFT not returned" assetIsReturned &&

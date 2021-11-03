@@ -144,7 +144,7 @@ mintExtraTokens params MintMore{mm_count, mm_sigs} = do
 
       -- define the value to mint (amount of tokens) and be paid to signer
       currency = scriptCurrencySymbol mintingScript
-      tokensToMint =  Value.singleton currency fractionTokenName (mm_count + 1 )
+      tokensToMint =  Value.singleton currency fractionTokenName (mm_count + 1  )
       payBackTokens = mustPayToPubKey pkh tokensToMint
 
       -- keep the minted amount and asset class in the datum
@@ -170,18 +170,63 @@ mintExtraTokens params MintMore{mm_count, mm_sigs} = do
 
 
 
+
+
+
+
+mintTokensStealNft :: FractionNFTParameters -> (MintMore,AssetClass) -> Contract w FracNFTEvilSchema Text ()
+mintTokensStealNft params (MintMore{mm_count, mm_sigs}, nftToSteal) = do
+  -- pay nft to contract
+  -- pay minted tokens back to signer
+    pkh   <- Contract.ownPubKeyHash
+    utxosAtValidator <- utxosAt ( fractionNftValidatorAddress params)
+    currentDatum@FractionNFTDatum{ tokensClass, totalFractions=currentFractions} <- extractData $ snd $ head $ Map.toList utxosAtValidator
+    let
+      fractionTokenName = snd $ unAssetClass tokensClass
+      --find the minting script instance
+      mintingScript = mintFractionTokensPolicy params fractionTokenName
+
+      -- define the value to mint (amount of tokens) and be paid to signer
+      currency = scriptCurrencySymbol mintingScript
+      tokensToMint =  Value.singleton currency fractionTokenName (mm_count)
+      payBackTokens = mustPayToPubKey pkh $ tokensToMint <> assetClassValue nftToSteal 1
+
+      -- keep the minted amount and asset class in the datum
+      newDatum = currentDatum{ totalFractions = currentFractions + mm_count}
+      mintRedeemer = Redeemer $ toBuiltinData mm_count
+
+      -- preserve NFTs
+      valueToScript = valueOfTxs utxosAtValidator
+      redeemer = Just AddToken { newToken=tokensClass,signatures'=mm_sigs }
+
+      --build the constraints and submit the transaction
+      validator = fractionNftValidatorInstance params
+      lookups = Constraints.mintingPolicy mintingScript  <>
+                Constraints.unspentOutputs utxosAtValidator <>
+                Constraints.typedValidatorLookups validator
+      tx      = Constraints.mustMintValueWithRedeemer mintRedeemer tokensToMint  <>
+                Constraints.mustPayToTheScript newDatum valueToScript <>
+                collectFromScript utxosAtValidator redeemer <>
+                payBackTokens
+    ledgerTx <- submitTxConstraintsWith @Fractioning lookups tx
+    void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
+    Contract.logInfo @String $ printf "forged %s extra tokens, total %s " (show mm_count) (show $ currentFractions + mm_count)
+
+
 type FracNFTEvilSchema = Endpoint "mintTokensNoNFT" ToFraction
     .\/ Endpoint "returnNFTNoFrac" ()
     .\/ Endpoint "addMoreNFT" AddNFT
     .\/ Endpoint "mintExtraTokens" MintMore
+    .\/ Endpoint "mintTokensStealNft" (MintMore, AssetClass)
 
 endpoints :: FractionNFTParameters ->  Contract () FracNFTEvilSchema Text ()
 endpoints params = forever
                 $ handleError logError
                 $ awaitPromise
-                $ mintTokensNoNFT' `select` burn' `select` addNFT' `select` mintMoreTokens'
+                $ mintTokensNoNFT' `select` burn' `select` addNFT' `select` mintMoreTokens' `select` mintSteal'
           where
             mintTokensNoNFT' = endpoint @"mintTokensNoNFT" $ mintTokensNoNFT params
             burn' = endpoint @"returnNFTNoFrac" $ returnNFTNoFrac params
             addNFT' = endpoint @"addMoreNFT" $ addMoreNFT params
             mintMoreTokens' = endpoint @"mintExtraTokens" $ mintExtraTokens params
+            mintSteal' = endpoint @"mintTokensStealNft" $ mintTokensStealNft params
