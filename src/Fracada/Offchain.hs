@@ -97,8 +97,8 @@ fractionNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, 
       -- value of NFT
       valueToScript = assetClassValue initTokenClass 1
       -- keep the minted amount and asset class in the datum
-      nftAsset =  assetClass currency fractionTokenName
-      datum = Datum $ toBuiltinData FractionNFTDatum{ tokensClass= nftAsset, totalFractions = fractions, newNftClass = nftAsset}
+      fractionAsset =  assetClass currency fractionTokenName
+      datum = Datum $ toBuiltinData FractionNFTDatum{ tokensClass= fractionAsset, totalFractions = fractions, newNftClass = fractionAsset}
 
       mintRedeemer = Redeemer $ toBuiltinData fractions
       --build the constraints and submit the transaction

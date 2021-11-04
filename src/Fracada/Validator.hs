@@ -137,7 +137,7 @@ ownNextDatumHash ctx =  case getContinuingOutputs ctx of
 
 {-# INLINABLE fractionNftValidator #-}
 fractionNftValidator :: FractionNFTParameters -> FractionNFTDatum -> Maybe AddToken -> ScriptContext -> Bool
-fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorizedPubKeys, minSigRequired } FractionNFTDatum{tokensClass, totalFractions, newNftClass} redeemer ctx =
+fractionNftValidator FractionNFTParameters{initTokenClass, authorizedPubKeys, minSigRequired } FractionNFTDatum{tokensClass, totalFractions, newNftClass} redeemer ctx =
   let
     txInfo = scriptContextTxInfo ctx
     valueInContract = valueLockedBy txInfo (ownHash ctx)
@@ -184,42 +184,35 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
         else
           -- add new tokens to the lock
           let
-            newTokenValueOf :: Value -> Integer
-            newTokenValueOf val = assetClassValueOf val newToken
 
-            oldValue = newTokenValueOf $ valueWithin $ findOwnInput' ctx
-            newValue = newTokenValueOf valueInContract
-            --ensure we add only one token each time
-            valueIncreased = oldValue +1 == newValue
             -- the latest added token is the only change in the datum
             datumUpdated = tc' == tokensClass && tf' == totalFractions && nftc' == newToken
 
             --extract the value increase
             adaValue = toValue $ fromValue valueInContract
-            [(currencyId', tokenName', increaseAmount)] = flattenValue $ valueInContract - adaValue - currentValueInContract
             -- the value increase should match the new token and should be only 1
-            valueIncreaseMatchToken = newTokenCurrId == currencyId' && newTokenTokenNm == tokenName' && increaseAmount == 1
+            nonAdaValue = flattenValue $ valueInContract - adaValue - currentValueInContract
+            valueIncreaseMatchToken = case nonAdaValue of
+                [(currencyId', tokenName', increaseAmount)]  -> newTokenCurrId == currencyId' && newTokenTokenNm == tokenName' && increaseAmount == 1
+                _ -> False
 
-            -- validate the new token is not already added  (TODO: what if some UTxOs aren't included?)
+            -- validate the new token is not already added
             tokenNotPresent = assetClassValueOf currentValueInContract newNftClass == 0
 
           in
             traceIfFalse "not enough signatures to add tokens"  requiredSignatures
             && traceIfFalse "Token already added" tokenNotPresent
-            && traceIfFalse "token preserved " (not $ isZero $ valueInContract )
-            && traceIfFalse "Tokens not added" valueIncreased
             && traceIfFalse "datum not updated adding NFTs" datumUpdated
-            && traceIfFalse "Unexpected token" valueIncreaseMatchToken
+            && traceIfFalse "Value change not +1 NFT" valueIncreaseMatchToken
     else
       -- return all the NFTs
       let
-          -- make sure the asset(s) are returned (TODO: what if some UTxOs aren't included?)
-          assetIsReturned = assetClassValueOf (valueProduced txInfo) nftAsset > 0
+          -- make sure no nfts are left in the contract
+          allAssetAreReturned = isZero valueInContract
           -- make sure all the tokens are burned
           tokensBurnt = (forgedTokens == negate totalFractions)  && forgedTokens /= 0
         in
-          traceIfFalse "NFT not returned" assetIsReturned &&
-          traceIfFalse "Value locked in contract" ( isZero valueInContract ) &&
+          traceIfFalse "not all NFTs returned" allAssetAreReturned &&
           traceIfFalse "Tokens not burned" tokensBurnt
 
 

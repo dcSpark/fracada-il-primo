@@ -170,12 +170,6 @@ mintExtraTokens params MintMore{mm_count, mm_sigs} = do
     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "forged %s extra tokens, total %s " (show mm_count) (show $ currentFractions + mm_count)
 
-
-
-
-
-
-
 mintTokensStealNft :: FractionNFTParameters -> (MintMore,AssetClass) -> Contract w FracNFTEvilSchema Text ()
 mintTokensStealNft params (MintMore{mm_count, mm_sigs}, nftToSteal) = do
   -- pay nft to contract
@@ -271,6 +265,122 @@ mintVariousTokens params MintMore{mm_count, mm_sigs} = do
     Contract.logInfo @String $ printf "forged %s extra tokens, total %s " (show mm_count) (show $ currentFractions + mm_count)
 
 
+addNFTNoDatumUpd :: FractionNFTParameters -> AddNFT -> Contract w FracNFTEvilSchema Text ()
+addNFTNoDatumUpd params AddNFT{an_asset, an_sigs} = do
+    utxosAtValidator <- utxosAt ( fractionNftValidatorAddress params)
+    let
+      -- value of NFT
+      valueToScript = (valueOfTxs utxosAtValidator) <> assetClassValue an_asset 1
+      nftTx = snd.head $ Map.toList utxosAtValidator
+
+    previousDatum <- extractData nftTx
+    let
+        --update datum incrementing the count of nfts
+        updatedDatum = previousDatum
+        redeemer = Just AddToken { newToken=an_asset,signatures'=an_sigs}
+        validatorScript = fractionNftValidatorInstance params
+        tx       = collectFromScript utxosAtValidator redeemer <> mustPayToTheScript updatedDatum valueToScript
+
+    void $ submitTxConstraintsSpending validatorScript utxosAtValidator tx
+    Contract.logInfo @String $ printf "added new NFT %s" (show an_asset)
+
+
+partialReturn :: FractionNFTParameters -> () -> Contract w FracNFTEvilSchema Text ()
+partialReturn params@FractionNFTParameters{initTokenClass} _ = do
+  -- pay nft to signer
+  -- burn tokens
+    pkh   <- Contract.ownPubKeyHash
+    utxos' <- utxosAt ( fractionNftValidatorAddress params)
+    let
+      -- declare the NFT value
+      valueToWallet = assetClassValue initTokenClass 1
+      -- find the UTxO that has the NFT we're looking for
+      (nftRef,nftTx) = head $ Map.toList utxos'
+    -- use the auxiliary extractData function to get the datum content
+    currentDatum@FractionNFTDatum {tokensClass, totalFractions, newNftClass } <- extractData nftTx
+    -- assuming that all the fraction tokens are in the owner's `ownPubkey` address. For tracing it is good enough,
+    -- though for real-use-cases it is more nuanced, as the owner can have them on different
+    -- UTxOs.
+    ownAddress <- pubKeyHashAddress <$> Contract.ownPubKeyHash
+    futxos <- utxosAt ownAddress
+
+    let
+      tokensAsset = AssetClass (tokensCurrency, fractionTokenName)
+      fracTokenUtxos = Map.filter (\v -> assetClassValueOf (_ciTxOutValue v) tokensAsset > 0  ) futxos
+
+      -- declare the fractional tokens to burn
+      (_, fractionTokenName) = unAssetClass tokensClass
+      tokensCurrency =  curSymbol params fractionTokenName
+      amountToBurn = negate totalFractions
+      tokensToBurn =  Value.singleton tokensCurrency fractionTokenName amountToBurn
+
+      emptyRedeemer = Nothing :: Maybe AddToken
+      mintRedeemer = Redeemer $ toBuiltinData amountToBurn
+
+      valueKept = assetClassValue newNftClass 1
+
+      -- build the constraints and submit
+      validator = fractionNftValidatorInstance params
+      lookups = Constraints.mintingPolicy (mintFractionTokensPolicy params fractionTokenName)  <>
+                Constraints.unspentOutputs utxos' <>
+                Constraints.unspentOutputs fracTokenUtxos <>
+                Constraints.ownPubKeyHash pkh  <>
+                 Constraints.typedValidatorLookups validator
+
+      tx      = Constraints.mustMintValueWithRedeemer mintRedeemer tokensToBurn <>
+                Constraints.mustSpendScriptOutput nftRef ( Redeemer $ toBuiltinData emptyRedeemer ) <>
+                Constraints.mustPayToPubKey pkh valueToWallet <>
+                Constraints.mustPayToTheScript currentDatum valueKept
+
+    ledgerTx <- submitTxConstraintsWith @Fractioning lookups tx
+    void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
+    Contract.logInfo @String $ printf "burnt %s" (show totalFractions)
+
+returnNoNFT :: FractionNFTParameters -> () -> Contract w FracNFTEvilSchema Text ()
+returnNoNFT params _ = do
+  -- pay nft to signer
+  -- burn tokens
+    pkh   <- Contract.ownPubKeyHash
+    utxos' <- utxosAt ( fractionNftValidatorAddress params)
+    let
+      -- find the UTxO that has the NFT we're looking for
+      nftTx = snd $ head $ Map.toList utxos'
+    -- use the auxiliary extractData function to get the datum content
+    FractionNFTDatum {tokensClass, totalFractions } <- extractData nftTx
+    -- assuming that all the fraction tokens are in the owner's `ownPubkey` address. For tracing it is good enough,
+    -- though for real-use-cases it is more nuanced, as the owner can have them on different
+    -- UTxOs.
+    ownAddress <- pubKeyHashAddress <$> Contract.ownPubKeyHash
+    futxos <- utxosAt ownAddress
+
+    let
+      tokensAsset = AssetClass (tokensCurrency, fractionTokenName)
+      fracTokenUtxos = Map.filter (\v -> assetClassValueOf (_ciTxOutValue v) tokensAsset > 0  ) futxos
+
+      -- declare the fractional tokens to burn
+      (_, fractionTokenName) = unAssetClass tokensClass
+      tokensCurrency =  curSymbol params fractionTokenName
+      amountToBurn = negate totalFractions
+      tokensToBurn =  Value.singleton tokensCurrency fractionTokenName amountToBurn
+
+      mintRedeemer = Redeemer $ toBuiltinData amountToBurn
+
+      -- build the constraints and submit
+      validator = fractionValidatorScript params
+      lookups = Constraints.mintingPolicy (mintFractionTokensPolicy params fractionTokenName)  <>
+                Constraints.otherScript validator <>
+                Constraints.unspentOutputs utxos' <>
+                Constraints.unspentOutputs fracTokenUtxos <>
+                Constraints.ownPubKeyHash pkh
+
+      tx      = Constraints.mustMintValueWithRedeemer mintRedeemer tokensToBurn
+                -- <>
+                -- Constraints.mustSpendScriptOutput nftRef ( Redeemer $ toBuiltinData emptyRedeemer ) <>
+                -- Constraints.mustPayToPubKey pkh valueToWallet
+
+    ledgerTx <- submitTxConstraintsWith @Void lookups tx
+    void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
+    Contract.logInfo @String $ printf "burnt %s" (show totalFractions)
 
 type FracNFTEvilSchema = Endpoint "mintTokensNoNFT" ToFraction
     .\/ Endpoint "returnNFTNoFrac" ()
@@ -278,12 +388,16 @@ type FracNFTEvilSchema = Endpoint "mintTokensNoNFT" ToFraction
     .\/ Endpoint "mintExtraTokens" MintMore
     .\/ Endpoint "mintTokensStealNft" (MintMore, AssetClass)
     .\/ Endpoint "mintVariousTokens" MintMore
+    .\/ Endpoint "addNFTNoDatumUpd" AddNFT
+    .\/ Endpoint "partialReturn" ()
+    .\/ Endpoint "returnNoNFT" ()
 
 endpoints :: FractionNFTParameters ->  Contract () FracNFTEvilSchema Text ()
 endpoints params = forever
                 $ handleError logError
                 $ awaitPromise
-                $ mintTokensNoNFT' `select` burn' `select` addNFT' `select` mintMoreTokens' `select` mintSteal' `select` mintVariousTokens'
+                $ mintTokensNoNFT' `select` burn' `select` addNFT' `select` mintMoreTokens'
+                  `select` mintSteal' `select` mintVariousTokens' `select` addNFTNoDatumUpd' `select` partialReturn' `select` returnNoNFT'
           where
             mintTokensNoNFT' = endpoint @"mintTokensNoNFT" $ mintTokensNoNFT params
             burn' = endpoint @"returnNFTNoFrac" $ returnNFTNoFrac params
@@ -291,3 +405,6 @@ endpoints params = forever
             mintMoreTokens' = endpoint @"mintExtraTokens" $ mintExtraTokens params
             mintSteal' = endpoint @"mintTokensStealNft" $ mintTokensStealNft params
             mintVariousTokens' = endpoint @"mintVariousTokens" $ mintVariousTokens params
+            addNFTNoDatumUpd' = endpoint @"addNFTNoDatumUpd" $ addNFTNoDatumUpd params
+            partialReturn' = endpoint @"partialReturn" $ partialReturn params
+            returnNoNFT' = endpoint @"returnNoNFT" $ returnNoNFT params

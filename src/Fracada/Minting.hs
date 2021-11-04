@@ -22,8 +22,8 @@ import           PlutusTx.Prelude     hiding (Semigroup (..), unless)
 
 
 {-# INLINABLE mintFractionTokens #-}
-mintFractionTokens :: ValidatorHash -> AssetClass -> TokenName -> Integer -> ScriptContext -> Bool
-mintFractionTokens fractionNFTScript asset fractionTokenName numberOfFractions ctx =
+mintFractionTokens :: ValidatorHash -> AssetClass -> TokenName -> BuiltinData -> ScriptContext -> Bool
+mintFractionTokens fractionNFTScript asset fractionTokenName _ ctx =
   let
     info = scriptContextTxInfo ctx
     -- find the minted value corresponding to this particular fraction token
@@ -38,15 +38,13 @@ mintFractionTokens fractionNFTScript asset fractionTokenName numberOfFractions c
         -- require that the nft is locked
         assetIsLocked = assetClassValueOf lockedByNFTfractionScript asset == 1
       in
-        traceIfFalse "Asset not locked" assetIsLocked           &&
-        traceIfFalse "wrong fraction tokens minted" ( mintedAmount == numberOfFractions)
+        traceIfFalse "Asset not locked" assetIsLocked
     else if mintedAmount < 0 then
       let
         -- make sure the asset is spent
         assetIsReturned = assetClassValueOf (valueProduced info) asset > 0
       in
-        traceIfFalse "Asset not returned" assetIsReturned           &&
-        traceIfFalse "wrong fraction tokens burned" ( mintedAmount == numberOfFractions)
+        traceIfFalse "Asset not returned" assetIsReturned
     else
       False
 

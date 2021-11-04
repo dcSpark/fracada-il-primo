@@ -362,3 +362,69 @@ repeatToken = do
 
     callEndpoint @"addNFT" h1 newToken
     void $ Emulator.waitNSlots 1
+
+addNFTNoUpdate :: EmulatorTrace ()
+addNFTNoUpdate = do
+    h1 <- activateContractWallet (toMockWallet w1) $ OC.endpoints contractParams
+    h2 <- activateContractWallet (toMockWallet w1) $ Evil.endpoints contractParams
+    void $ Emulator.waitNSlots 1
+    let
+
+        tknName = tokenName "Frac"
+        toFraction = ToFraction { fractions = 10, fractionTokenName = tknName }
+         --find the minting script instance
+        mintingScript = mintFractionTokensPolicy contractParams tknName
+        -- define the value to mint (amount of tokens) and be paid to signer
+        currency = scriptCurrencySymbol mintingScript
+        tokenClass = assetClass currency tknName
+
+        expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=tokenClass}
+        newToken = AddNFT { an_asset= nft2, an_sigs= signDatum expectedDatumAtAdd}
+
+
+    callEndpoint @"fractionNFT" h1 toFraction
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"addNFTNoDatumUpd" h2 newToken
+    void $ Emulator.waitNSlots 1
+
+
+dontRemoveAll :: EmulatorTrace ()
+dontRemoveAll = do
+    h1 <- activateContractWallet (toMockWallet w1) $ OC.endpoints contractParams
+    h2 <- activateContractWallet (toMockWallet w1) $ Evil.endpoints contractParams
+    void $ Emulator.waitNSlots 1
+    let
+
+        tknName = tokenName "Frac"
+        toFraction = ToFraction { fractions = 10, fractionTokenName = tknName }
+         --find the minting script instance
+        mintingScript = mintFractionTokensPolicy contractParams tknName
+        -- define the value to mint (amount of tokens) and be paid to signer
+        currency = scriptCurrencySymbol mintingScript
+        tokenClass = assetClass currency tknName
+
+        expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft2}
+        newToken = AddNFT { an_asset= nft2, an_sigs= signDatum expectedDatumAtAdd}
+
+    callEndpoint @"fractionNFT" h1 toFraction
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"addNFT" h1 newToken
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"partialReturn" h2 ()
+
+burnNoNFT :: EmulatorTrace ()
+burnNoNFT = do
+    h1 <- activateContractWallet (toMockWallet w1) $ OC.endpoints contractParams
+    h2 <- activateContractWallet (toMockWallet w1) $ Evil.endpoints contractParams
+    void $ Emulator.waitNSlots 1
+    let
+        toFraction = ToFraction { fractions = 10, fractionTokenName = tokenName "Frac" }
+
+    callEndpoint @"fractionNFT" h1 toFraction
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"returnNoNFT" h2 ()
+    void $ Emulator.waitNSlots 1
