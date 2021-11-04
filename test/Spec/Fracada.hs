@@ -41,16 +41,15 @@ useCaseTests =
         , checkPredicateOptions options "Can't add unsigned nft" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["not enough signatures to add tokens", "PT5"] _) -> True; _ -> False  })) E.unsignedNFT
         , checkPredicateOptions options "Can't mint unsigned tokens" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["not enough signatures for minting", "PT5"] _) -> True; _ -> False  })) E.unsignedMinting
         , checkPredicateOptions options "Can't add more than one token" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not added", "PT5"] _) -> True; _ -> False  })) E.addExtraToken
-        , checkPredicateOptions options "Can't steal NFTs when minting" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not added", "PT5"] _) -> True; _ -> False  })) E.mintAndSteal
+        , checkPredicateOptions options "Can't steal NFTs when minting" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["contract value not preserved", "PT5"] _) -> True; _ -> False  })) E.mintAndSteal
+        , checkPredicateOptions options "Can't mint extraneous tokens" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Unexpected minted amount", "PT5"] _) -> True; _ -> False  })) E.mintExtraneousTokens
+        , checkPredicateOptions options "Can't add the same NFT" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Token already added", "PT5"] _) -> True; _ -> False  })) E.repeatToken
+
 
          ]
 {-
 Pending
-              traceIfFalse "contract value not preserved"  valuePreserved  &&
-              traceIfFalse "Unexpected minted amount" (txInfoMint txInfo == expectedMinted)
 
-            && traceIfFalse "no new value " (not $ isZero $ valueProduced txInfo )
-            && traceIfFalse "Token already added" tokenNotPresent
             && traceIfFalse "token preserved " (not $ isZero $ valueInContract )
             && traceIfFalse "datum not updated" datumUpdated
             && traceIfFalse "Unexpected token" valueIncreaseMatchToken

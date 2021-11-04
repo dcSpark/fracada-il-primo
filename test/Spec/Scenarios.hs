@@ -30,6 +30,7 @@ import           Prelude                ((<>))
 import           Spec.EvilEndpoints     as Evil
 import           Wallet.Emulator.Wallet
 
+
 nftCurrency :: CurrencySymbol
 nftCurrency = "66"
 
@@ -282,7 +283,62 @@ addExtraToken = do
 mintAndSteal :: EmulatorTrace ()
 mintAndSteal = do
     h1 <- activateContractWallet (toMockWallet w1) $ OC.endpoints contractParams
-    h2 <- activateContractWallet (toMockWallet w2) $ Evil.endpoints contractParams
+    h2 <- activateContractWallet (toMockWallet w1) $ Evil.endpoints contractParams
+    void $ Emulator.waitNSlots 1
+    let
+
+        tknName = tokenName "Frac"
+        toFraction = ToFraction { fractions = 10, fractionTokenName = tknName }
+         --find the minting script instance
+        mintingScript = mintFractionTokensPolicy contractParams tknName
+        -- define the value to mint (amount of tokens) and be paid to signer
+        currency = scriptCurrencySymbol mintingScript
+        tokenClass = assetClass currency tknName
+
+        expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft3}
+        newToken = AddNFT { an_asset= nft3, an_sigs= signDatum expectedDatumAtAdd}
+
+        expectedDatumAtMint = expectedDatumAtAdd { totalFractions = 30 }
+        mintMore = MintMore { mm_count= 20, mm_sigs= signDatum expectedDatumAtMint }
+
+
+    callEndpoint @"fractionNFT" h1 toFraction
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"addNFT" h1 newToken
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"mintTokensStealNft" h2 (mintMore, nft3)
+
+
+mintExtraneousTokens :: EmulatorTrace ()
+mintExtraneousTokens = do
+    h1 <- activateContractWallet (toMockWallet w1) $ OC.endpoints contractParams
+    h2 <- activateContractWallet (toMockWallet w1) $ Evil.endpoints contractParams
+    void $ Emulator.waitNSlots 1
+    let
+
+        tknName = tokenName "Frac"
+        toFraction = ToFraction { fractions = 10, fractionTokenName = tknName }
+         --find the minting script instance
+        mintingScript = mintFractionTokensPolicy contractParams tknName
+        -- define the value to mint (amount of tokens) and be paid to signer
+        currency = scriptCurrencySymbol mintingScript
+        tokenClass = assetClass currency tknName
+
+        expectedDatumAtMint = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 20, newNftClass=tokenClass}
+        mintMore = MintMore { mm_count= 10, mm_sigs= signDatum expectedDatumAtMint }
+
+    callEndpoint @"fractionNFT" h1 toFraction
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"mintVariousTokens" h2 mintMore
+    void $ Emulator.waitNSlots 1
+
+
+repeatToken :: EmulatorTrace ()
+repeatToken = do
+    h1 <- activateContractWallet (toMockWallet w1) $ OC.endpoints contractParams
     void $ Emulator.waitNSlots 1
     let
 
@@ -297,9 +353,6 @@ mintAndSteal = do
         expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft2}
         newToken = AddNFT { an_asset= nft2, an_sigs= signDatum expectedDatumAtAdd}
 
-        expectedDatumAtMint = expectedDatumAtAdd { totalFractions = 30 }
-        mintMore = MintMore { mm_count= 20, mm_sigs= signDatum expectedDatumAtMint }
-
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
@@ -307,4 +360,5 @@ mintAndSteal = do
     callEndpoint @"addNFT" h1 newToken
     void $ Emulator.waitNSlots 1
 
-    callEndpoint @"mintTokensStealNft" h2 (mintMore, nft2)
+    callEndpoint @"addNFT" h1 newToken
+    void $ Emulator.waitNSlots 1

@@ -205,7 +205,6 @@ fractionNftValidator FractionNFTParameters{initTokenClass = nftAsset, authorized
 
           in
             traceIfFalse "not enough signatures to add tokens"  requiredSignatures
-            && traceIfFalse "no new value " (not $ isZero $ valueProduced txInfo )
             && traceIfFalse "Token already added" tokenNotPresent
             && traceIfFalse "token preserved " (not $ isZero $ valueInContract )
             && traceIfFalse "Tokens not added" valueIncreased
