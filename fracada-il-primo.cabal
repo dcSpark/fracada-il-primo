@@ -102,51 +102,98 @@ executable           Emulator
                       StandaloneKindSignatures
   ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
--- executable           script-dump
---   main-is:           script-dump.hs
---   hs-source-dirs:    exe, src
---   other-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain
---   build-depends:     base
---                     , fracada-il-primo
---                     , aeson
---                     , cardano-api
---                     , cardano-ledger-alonzo
---                     , cardano-api
---                     , bytestring
---                     , containers
---                     , freer-extras
---                     , plutus-core
---                     , plutus-contract
---                     , plutus-ledger
---                     , plutus-ledger-api
---                     , plutus-tx
---                     , plutus-tx-plugin
---                     , text
---                     , serialise
---                     , playground-common
---                     , base16-bytestring
---   default-language:   Haskell2010
---   default-extensions: DataKinds
---                       DeriveAnyClass
---                       DeriveGeneric
---                       DerivingStrategies
---                       ExplicitForAll
---                       FunctionalDependencies
---                       GADTs
---                       MultiParamTypeClasses
---                       NamedFieldPuns
---                       OverloadedStrings
---                       PolyKinds
---                       KindSignatures
---                       StandaloneDeriving
---                       TemplateHaskell
---                       TypeApplications
---                       TypeFamilies
---                       TypeOperators
---                       MultiParamTypeClasses
---                       ScopedTypeVariables
---                       StandaloneKindSignatures
---   ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
+executable           datum-dump
+  main-is:           datum-dump.hs
+  hs-source-dirs:    scripts, src
+  other-modules:     Fracada.Validator
+  build-depends:     base
+                    , aeson
+                    , cardano-api
+                    , cardano-ledger-alonzo
+                    , bytestring
+                    , containers
+                    , freer-extras
+                    , plutus-core
+                    , plutus-contract
+                    , plutus-ledger
+                    , plutus-ledger-api
+                    , plutus-tx
+                    , plutus-tx-plugin
+                    , text
+                    , serialise
+                    , playground-common
+                    , cardano-api
+                    , hex
+                    , base16-bytestring
+  default-language:   Haskell2010
+  default-extensions: DataKinds
+                      DeriveAnyClass
+                      DeriveGeneric
+                      DerivingStrategies
+                      ExplicitForAll
+                      FunctionalDependencies
+                      GADTs
+                      MultiParamTypeClasses
+                      NamedFieldPuns
+                      OverloadedStrings
+                      PolyKinds
+                      KindSignatures
+                      StandaloneDeriving
+                      TemplateHaskell
+                      TypeApplications
+                      TypeFamilies
+                      TypeOperators
+                      MultiParamTypeClasses
+                      ScopedTypeVariables
+                      StandaloneKindSignatures
+  ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
+
+
+executable           script-dump
+  main-is:           script-dump.hs
+  hs-source-dirs:    scripts, src
+  other-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain
+  build-depends:     base
+                    , fracada-il-primo
+                    , aeson
+                    , cardano-api
+                    , cardano-ledger-alonzo
+                    , cardano-api
+                    , bytestring
+                    , containers
+                    , freer-extras
+                    , plutus-core
+                    , plutus-contract
+                    , plutus-ledger
+                    , plutus-ledger-api
+                    , plutus-tx
+                    , plutus-tx-plugin
+                    , text
+                    , serialise
+                    , playground-common
+                    , base16-bytestring
+  default-language:   Haskell2010
+  default-extensions: DataKinds
+                      DeriveAnyClass
+                      DeriveGeneric
+                      DerivingStrategies
+                      ExplicitForAll
+                      FunctionalDependencies
+                      GADTs
+                      MultiParamTypeClasses
+                      NamedFieldPuns
+                      OverloadedStrings
+                      PolyKinds
+                      KindSignatures
+                      StandaloneDeriving
+                      TemplateHaskell
+                      TypeApplications
+                      TypeFamilies
+                      TypeOperators
+                      MultiParamTypeClasses
+                      ScopedTypeVariables
+                      StandaloneKindSignatures
+  ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
 executable           fracada-scripts
   main-is:           Main.hs

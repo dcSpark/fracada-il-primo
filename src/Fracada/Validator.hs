@@ -137,7 +137,7 @@ ownNextDatumHash ctx =  case getContinuingOutputs ctx of
 
 {-# INLINABLE fractionNftValidator #-}
 fractionNftValidator :: FractionNFTParameters -> FractionNFTDatum -> Maybe AddToken -> ScriptContext -> Bool
-fractionNftValidator FractionNFTParameters{initTokenClass, authorizedPubKeys, minSigRequired } FractionNFTDatum{tokensClass, totalFractions, newNftClass} redeemer ctx =
+fractionNftValidator FractionNFTParameters{authorizedPubKeys, minSigRequired } FractionNFTDatum{tokensClass, totalFractions, newNftClass} redeemer ctx =
   let
     txInfo = scriptContextTxInfo ctx
     valueInContract = valueLockedBy txInfo (ownHash ctx)

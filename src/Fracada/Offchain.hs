@@ -81,7 +81,7 @@ extractData o = do
 
 
 fractionNFT :: FractionNFTParameters -> ToFraction -> Contract w FracNFTSchema Text ()
-fractionNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, fractionTokenName} = do
+fractionNFT params@FractionNFTParameters{initTokenClass, authorizedPubKeys} ToFraction {fractions, fractionTokenName} = do
   -- pay nft to contract
   -- pay minted tokens back to signer
     pkh   <- Contract.ownPubKeyHash
@@ -111,6 +111,7 @@ fractionNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, 
     ledgerTx <- submitTxConstraintsWith @Void lookups tx
     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "forged %s for NFT %s" (show fractions) (show initTokenClass)
+    Contract.logInfo @String $ printf "pks %s" (show authorizedPubKeys)
 
 returnNFT :: FractionNFTParameters -> () -> Contract w FracNFTSchema Text ()
 returnNFT params@FractionNFTParameters{initTokenClass} _ = do
