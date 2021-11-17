@@ -7,11 +7,13 @@ import           Cardano.Api
 import           Cardano.Api.Shelley
 import           Codec.Serialise
 
+import qualified Cardano.Crypto.Wallet      as Crypto
 import qualified Cardano.Ledger.Alonzo.Data as Alonzo
 import qualified Plutus.V1.Ledger.Api       as Plutus
 
 
 import qualified Data.ByteString.Lazy       as LB
+
 import qualified Data.ByteString.Short      as SBS
 import           Data.Foldable              (toList)
 
@@ -25,18 +27,25 @@ import           Fracada.Validator
 import           Data.String                (IsString (..))
 import           Plutus.V1.Ledger.Value
 
+import           Text.Printf                (printf)
 
-loadVkey :: String -> IO (Either (FileError TextEnvelopeError) (VerificationKey PaymentKey))
-loadVkey fileName = readFileTextEnvelope (AsVerificationKey AsPaymentKey) fileName
+loadVkey :: String -> IO (Either (FileError TextEnvelopeError) (VerificationKey PaymentExtendedKey))
+loadVkey fileName = readFileTextEnvelope (AsVerificationKey AsPaymentExtendedKey) fileName
 
-toPubKey :: VerificationKey PaymentKey -> PubKey
-toPubKey vKey = PubKey $ Ledger.Bytes.fromBytes $ serialiseToRawBytes vKey
+-- toPrivKey :: SigningKey PaymentExtendedKey -> Crypto.XPrv
+-- toPrivKey (PaymentExtendedSigningKey key) = key
+
+-- xPubToPublicKey :: Crypto.XPub -> PubKey
+-- xPubToPublicKey = PubKey . KB.fromBytes . Crypto.xpubPublicKey
+
+toPubKey :: VerificationKey PaymentExtendedKey -> PubKey
+toPubKey (PaymentExtendedVerificationKey vk)  = PubKey $ Ledger.Bytes.fromBytes $ Crypto.xpubPublicKey vk
 
 main :: IO ()
 main = do
   args <- getArgs
   let nargs = length args
-  if nargs /= 3 then
+  if nargs /= 4 then
     do
       putStrLn $ "Usage:"
       putStrLn $ "script-dump <NFT currency symbol> <NFT token name> <fraction token name> <min sig required>  < paths to authorized vkey files"
@@ -57,7 +66,8 @@ main = do
 
       if length pks < minSigs then
         do
-          putStrLn "Not enough Public keys for required minum"
+          putStrLn $ printf "Not enough Public keys for required minum, required %s, found %s" (show minSigs) (show $ length pks)
+          putStrLn $ printf "minsigs %s" $ show minSigs
       else
         do
           let

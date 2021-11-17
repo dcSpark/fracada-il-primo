@@ -75,8 +75,8 @@ emCfg = EmulatorConfig (Left $ Map.fromList [(toMockWallet w, v) | w <- [w1, w2,
     where
         v = Ada.lovelaceValueOf 1000_000_000 <> assetClassValue nft 1  <> assetClassValue nft2 2 <> assetClassValue nft3 1
 
-signDatum :: FractionNFTDatum -> [Signature]
-signDatum fracDatum = map (sign msgHash) privKeys
+signDatumHash :: FractionNFTDatum -> [Signature]
+signDatumHash fracDatum = map (sign msgHash) privKeys
                         where
                             datum' = Datum $ toBuiltinData fracDatum
                             DatumHash msgHash = datumHash datum'
@@ -111,10 +111,10 @@ scenario2 = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft2}
-        newToken = AddNFT { an_asset= nft2, an_sigs= signDatum expectedDatumAtAdd}
+        newToken = AddNFT { an_asset= nft2, an_sigs= signDatumHash expectedDatumAtAdd}
 
         expectedDatumAtMint = expectedDatumAtAdd { totalFractions = 30 }
-        mintMore = MintMore { mm_count= 20, mm_sigs= signDatum expectedDatumAtMint }
+        mintMore = MintMore { mm_count= 20, mm_sigs= signDatumHash expectedDatumAtMint }
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
@@ -143,7 +143,7 @@ scenario3 = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtMint = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 20, newNftClass=tokenClass}
-        mintMore = MintMore { mm_count= 20, mm_sigs= signDatum expectedDatumAtMint }
+        mintMore = MintMore { mm_count= 20, mm_sigs= signDatumHash expectedDatumAtMint }
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
@@ -200,7 +200,7 @@ mintExtraTokens = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtMint = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 20, newNftClass=tokenClass}
-        mintMore = MintMore { mm_count= 10, mm_sigs= signDatum expectedDatumAtMint }
+        mintMore = MintMore { mm_count= 10, mm_sigs= signDatumHash expectedDatumAtMint }
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
@@ -223,7 +223,7 @@ unsignedNFT = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft2}
-        newToken = AddNFT { an_asset= nft3, an_sigs= signDatum expectedDatumAtAdd}
+        newToken = AddNFT { an_asset= nft3, an_sigs= signDatumHash expectedDatumAtAdd}
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
@@ -247,7 +247,7 @@ unsignedMinting = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtMint = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 15, newNftClass=tokenClass}
-        mintMore = MintMore { mm_count= 20, mm_sigs= signDatum expectedDatumAtMint }
+        mintMore = MintMore { mm_count= 20, mm_sigs= signDatumHash expectedDatumAtMint }
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
@@ -272,7 +272,7 @@ addExtraToken = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft2}
-        newToken = AddNFT { an_asset= nft2, an_sigs= signDatum expectedDatumAtAdd}
+        newToken = AddNFT { an_asset= nft2, an_sigs= signDatumHash expectedDatumAtAdd}
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
@@ -296,10 +296,10 @@ mintAndSteal = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft3}
-        newToken = AddNFT { an_asset= nft3, an_sigs= signDatum expectedDatumAtAdd}
+        newToken = AddNFT { an_asset= nft3, an_sigs= signDatumHash expectedDatumAtAdd}
 
         expectedDatumAtMint = expectedDatumAtAdd { totalFractions = 30 }
-        mintMore = MintMore { mm_count= 20, mm_sigs= signDatum expectedDatumAtMint }
+        mintMore = MintMore { mm_count= 20, mm_sigs= signDatumHash expectedDatumAtMint }
 
 
     callEndpoint @"fractionNFT" h1 toFraction
@@ -327,7 +327,7 @@ mintExtraneousTokens = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtMint = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 20, newNftClass=tokenClass}
-        mintMore = MintMore { mm_count= 10, mm_sigs= signDatum expectedDatumAtMint }
+        mintMore = MintMore { mm_count= 10, mm_sigs= signDatumHash expectedDatumAtMint }
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
@@ -351,7 +351,7 @@ repeatToken = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft2}
-        newToken = AddNFT { an_asset= nft2, an_sigs= signDatum expectedDatumAtAdd}
+        newToken = AddNFT { an_asset= nft2, an_sigs= signDatumHash expectedDatumAtAdd}
 
 
     callEndpoint @"fractionNFT" h1 toFraction
@@ -379,7 +379,7 @@ addNFTNoUpdate = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=tokenClass}
-        newToken = AddNFT { an_asset= nft2, an_sigs= signDatum expectedDatumAtAdd}
+        newToken = AddNFT { an_asset= nft2, an_sigs= signDatumHash expectedDatumAtAdd}
 
 
     callEndpoint @"fractionNFT" h1 toFraction
@@ -405,7 +405,7 @@ dontRemoveAll = do
         tokenClass = assetClass currency tknName
 
         expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft2}
-        newToken = AddNFT { an_asset= nft2, an_sigs= signDatum expectedDatumAtAdd}
+        newToken = AddNFT { an_asset= nft2, an_sigs= signDatumHash expectedDatumAtAdd}
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
