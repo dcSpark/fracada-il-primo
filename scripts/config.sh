@@ -1,3 +1,4 @@
-export CARDANO_CLI=../../cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.5/cardano-cli-1.30.1/x/cardano-cli/build/cardano-cli/cardano-cli
+export CARDANO_CLI=../../cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.5/cardano-cli-1.31.0/x/cardano-cli/build/cardano-cli/cardano-cli
+
 export TESTNET_MAGIC_NUM=1097911063
 export CARDANO_NODE_SOCKET_PATH=/home/gabriel/encrypted/dcSpark/cardano-node/mainnet/db/node.socket

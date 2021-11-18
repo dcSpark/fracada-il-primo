@@ -32,6 +32,6 @@ $CARDANO_CLI address build \
 
 
 # 3 signatures
-$CARDANO_CLI address key-gen --verification-key-file key1.vkey --signing-key-file key1.skey --extended-key 
-$CARDANO_CLI address key-gen --verification-key-file key2.vkey --signing-key-file key2.skey --extended-key 
-$CARDANO_CLI address key-gen --verification-key-file key3.vkey --signing-key-file key3.skey --extended-key 
+$CARDANO_CLI address key-gen --verification-key-file address/key1.vkey --signing-key-file address/key1.skey --extended-key 
+$CARDANO_CLI address key-gen --verification-key-file address/key2.vkey --signing-key-file address/key2.skey --extended-key 
+$CARDANO_CLI address key-gen --verification-key-file address/key3.vkey --signing-key-file address/key3.skey --extended-key 
