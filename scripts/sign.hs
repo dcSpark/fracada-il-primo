@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 import           Ledger
 import           Prelude
@@ -9,13 +8,14 @@ import           Cardano.Api
 import qualified Plutus.V1.Ledger.Api       as Plutus
 
 
-
-
 import qualified Cardano.Crypto.Wallet      as Crypto
+import           Data.ByteArray             hiding (length)
 import qualified Data.ByteArray             as BA
+import qualified Data.ByteString            as B
 import qualified Data.ByteString.Base16     as B16
 import qualified Data.ByteString.Lazy       as LB
 import qualified Data.ByteString.Lazy.Char8 as BL8
+import           Text.Printf                (printf)
 
 
 
@@ -25,14 +25,6 @@ loadSkey fileName = readFileTextEnvelope (AsSigningKey AsPaymentExtendedKey) fil
 toPrivKey :: SigningKey PaymentExtendedKey -> Crypto.XPrv
 toPrivKey (PaymentExtendedSigningKey key) = key
 
-
--- sign :: BA.ByteArrayAccess a => a -> Crypto.XPrv -> Signature
-
-instance BA.ByteArrayAccess BL8.ByteString where
-    length =
-        BA.length . LB.toStrict
-    withByteArray =
-        BA.withByteArray . LB.toStrict
 
 main :: IO ()
 main = do
@@ -47,8 +39,13 @@ main = do
       let
         [fileToSign, sKeyFile, outputFile] = args
       Right sKey <- loadSkey sKeyFile
-      dataToSign <- BL8.readFile fileToSign
+      readData <- BL8.readFile fileToSign
+      putStrLn "Enter passphrase"
+      strPass <- getLine
       let
-        privKey = toPrivKey sKey
-        Signature signedData = sign dataToSign privKey
-      BL8.writeFile outputFile $ LB.fromStrict $  B16.encode $ Plutus.fromBuiltin signedData
+        pass =  BL8.toStrict $ BL8.pack strPass
+        xpriv = toPrivKey sKey
+        Right dataToSign = B16.decode $ LB.toStrict readData
+        signedData = Crypto.sign pass xpriv dataToSign
+      BL8.writeFile outputFile $ LB.fromStrict $  B16.encode $ Crypto.unXSignature signedData
+
