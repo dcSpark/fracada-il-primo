@@ -1,7 +1,7 @@
 . config.sh
 $CARDANO_CLI transaction sign \
 --tx-body-file tx.raw \
---signing-key-file ./address/${SIGNING_WALLET}.skey \
+--signing-key-file ./address/$1.skey \
 --signing-key-file ./address/fees.skey \
 --testnet-magic $TESTNET_MAGIC_NUM \
 --out-file tx.signed \

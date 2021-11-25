@@ -33,7 +33,8 @@ useCaseTests =
         ) $ void (Trace.activateContractWallet (toMockWallet E.w1) contract)
         , checkPredicateOptions options "Can lock NFT, mint fractional tokens, and exchange the NFT back when burning the tokens" assertNoFailedTransactions E.scenario1
         , checkPredicateOptions options "Full scenario (lock NFT with minting, add more NFTs, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario2
-        , checkPredicateOptions options "No new NFTs (lock NFT with minting, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario2
+        , checkPredicateOptions options "No new NFTs (lock NFT with minting, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario3
+        , checkPredicateOptions options "Full scenario (lock NFT with minting, mint more tokens, add more NFTs, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario4
         -- validation error scenarios
         , checkPredicateOptions options "Can't return the nft if fractional tokens aren't burned" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not burned", "PT5"] _) -> True; _ -> False  })) E.returnNFTNoFrac
         , checkPredicateOptions options "Can't mint fractional tokens" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["datum not updated forging tokens", "PT5"] _) -> True; _ -> False  })) E.mintExtraTokens

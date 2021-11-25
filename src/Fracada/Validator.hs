@@ -197,7 +197,7 @@ fractionNftValidator FractionNFTParameters{authorizedPubKeys, minSigRequired } F
                 _ -> False
 
             -- validate the new token is not already added
-            tokenNotPresent = assetClassValueOf currentValueInContract newNftClass == 0
+            tokenNotPresent = assetClassValueOf currentValueInContract newToken == 0
 
           in
             traceIfFalse "not enough signatures to add tokens"  requiredSignatures

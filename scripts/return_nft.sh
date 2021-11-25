@@ -15,35 +15,46 @@ SELECTED_WALLET_ADDRESS=$(cat ./wallets/$SELECTED_WALLET_NAME.addr)
 
 if [ -z "$2" ]
 then
-  read -p 'Inital amount to mint: ' INITIAL_FRACT_TOKENS_AMOUNT
+  read -p 'Amount to burn: ' FRACT_TOKENS_AMOUNT
 else
-  echo 'Inital amount to mint:' $2
-  INITIAL_FRACT_TOKENS_AMOUNT=$2
+  echo 'Amount to burn:' $2
+  FRACT_TOKENS_AMOUNT=$2
 fi
 
-section "Select NFT UTxO"
+section "Select factional tokens UTxO"
 getInputTx $SELECTED_WALLET_NAME
+FRACTIONS_UTXO=$SELECTED_UTXO
+
+section "Select NFT tokens UTxO"
+getInputTx validator
 NFT_UTXO=$SELECTED_UTXO
+NFT_UTXO_LOVELACE=$SELECTED_UTXO_LOVELACE
+NFT_UTXO_TOKENS=$SELECTED_UTXO_TOKENS
 
 section "Select Collateral UTxO"
 getInputTx fees
 COLLATERAL_TX=$SELECTED_UTXO
 
+#echo "build empty redeemer"
+#${BUILD_REDEEMER}
 
 #build datum
-${BUILD_DATUM} new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
+# ${BUILD_DATUM} new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
 
-# pay NFT and mint fraction tokens
+# --tx-in-redeemer-value "{\"constructor\":1,\"fields\":[]}" \
+echo "pay NFT and mint fraction tokens"
 $CARDANO_CLI transaction build \
 --alonzo-era \
 --testnet-magic $TESTNET_MAGIC_NUM \
+--tx-in ${FRACTIONS_UTXO} \
 --tx-in ${NFT_UTXO} \
+--tx-in-script-file validator.plutus \
+--tx-in-datum-file datum.txt \
+--tx-in-redeemer-file redeemer.txt \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \
---tx-out "$(cat wallets/validator.addr) + 1724100 + 1 ${NFT_ASSET}" \
---tx-out-datum-hash $(cat datum-hash.txt) \
---tx-out "${SELECTED_WALLET_ADDRESS} + 1620654 + ${INITIAL_FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
---mint "${INITIAL_FRACT_TOKENS_AMOUNT}  ${FRACT_ASSET}" \
+--tx-out "${SELECTED_WALLET_ADDRESS} + 1620654 + 1 ${NFT_ASSET}" \
+--mint "-${FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
 --mint-script-file minting.plutus \
 --mint-redeemer-value {} \
 --change-address ${SELECTED_WALLET_ADDRESS} \

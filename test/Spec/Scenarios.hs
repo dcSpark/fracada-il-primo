@@ -95,7 +95,7 @@ scenario1 = do
     callEndpoint @"returnNFT" h1 ()
     void $ Emulator.waitNSlots 1
 
--- lock, add tokens, and unlock
+-- lock, add tokens, mint, and unlock
 scenario2 :: EmulatorTrace ()
 scenario2 = do
     h1 <- activateContractWallet (toMockWallet w1) $ OC.endpoints contractParams
@@ -142,13 +142,51 @@ scenario3 = do
         currency = scriptCurrencySymbol mintingScript
         tokenClass = assetClass currency tknName
 
-        expectedDatumAtMint = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 20, newNftClass=tokenClass}
+        expectedDatumAtMint = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 30, newNftClass=tokenClass}
         mintMore = MintMore { mm_count= 20, mm_sigs= signDatumHash expectedDatumAtMint }
 
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
 
     callEndpoint @"mintMoreTokens" h1 mintMore
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"returnNFT" h1 ()
+
+
+-- lock,  mint, add tokens,, and unlock
+scenario4 :: EmulatorTrace ()
+scenario4 = do
+    h1 <- activateContractWallet (toMockWallet w1) $ OC.endpoints contractParams
+    void $ Emulator.waitNSlots 1
+    let
+        tknName = tokenName "Frac"
+        toFraction = ToFraction { fractions = 10, fractionTokenName = tknName }
+         --find the minting script instance
+        mintingScript = mintFractionTokensPolicy contractParams tknName
+        -- define the value to mint (amount of tokens) and be paid to signer
+        currency = scriptCurrencySymbol mintingScript
+        tokenClass = assetClass currency tknName
+
+        expectedDatumAtMint = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 30, newNftClass=tokenClass}
+        mintMore = MintMore { mm_count= 20, mm_sigs= signDatumHash expectedDatumAtMint }
+
+        expectedDatumAtAdd = expectedDatumAtMint{ newNftClass=nft2}
+        newToken = AddNFT { an_asset= nft2, an_sigs= signDatumHash expectedDatumAtAdd}
+
+        expectedDatumAtAdd1 = expectedDatumAtMint{ newNftClass=nft3}
+        newToken1 = AddNFT { an_asset= nft3, an_sigs= signDatumHash expectedDatumAtAdd1}
+
+    callEndpoint @"fractionNFT" h1 toFraction
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"mintMoreTokens" h1 mintMore
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"addNFT" h1 newToken
+    void $ Emulator.waitNSlots 1
+
+    callEndpoint @"addNFT" h1 newToken1
     void $ Emulator.waitNSlots 1
 
     callEndpoint @"returnNFT" h1 ()

@@ -16,7 +16,7 @@ function getInputTx() {
 	TX_ROW=$(sed "${TX_ROW_NUM}q;d" $BALANCE_FILE)
 	SELECTED_UTXO="$(echo $TX_ROW | awk '{ print $1 }')#$(echo $TX_ROW | awk '{ print $2 }')"
 	SELECTED_UTXO_LOVELACE=$(echo $TX_ROW | awk '{ print $3 }')
-	SELECTED_UTXO_TOKENS=$(echo $TX_ROW | awk 'BEGIN { FS = "lovelace \\+ | \\+ TxOutDatumHash" } ; { print $2 }')
+	SELECTED_UTXO_TOKENS=$(echo $TX_ROW | awk 'BEGIN { FS = "lovelace \\+ | \\+ TxOutDatum" } ; { print $2 }')
 }
 
 walletAddress() {
