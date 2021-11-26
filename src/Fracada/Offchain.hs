@@ -61,6 +61,9 @@ type FracNFTSchema = Endpoint "fractionNFT" ToFraction
     .\/ Endpoint "currentDatumHash" ()
 
 
+emptyRedeemer :: Redeemer
+emptyRedeemer = Redeemer $ toBuiltinData ()
+
 getDatumHash :: ChainIndexTxOut -> Either DatumHash Datum
 getDatumHash PublicKeyChainIndexTxOut {}             = throwError "no datum for a txout of a public key address"
 getDatumHash ScriptChainIndexTxOut { _ciTxOutDatum } =  _ciTxOutDatum
@@ -100,12 +103,11 @@ fractionNFT params@FractionNFTParameters{initTokenClass, authorizedPubKeys} ToFr
       fractionAsset =  assetClass currency fractionTokenName
       datum = Datum $ toBuiltinData FractionNFTDatum{ tokensClass= fractionAsset, totalFractions = fractions, newNftClass = fractionAsset}
 
-      mintRedeemer = Redeemer $ toBuiltinData fractions
       --build the constraints and submit the transaction
       validator = fractionValidatorScript params
       lookups = Constraints.mintingPolicy mintingScript  <>
                 Constraints.otherScript validator
-      tx      = Constraints.mustMintValueWithRedeemer mintRedeemer tokensToMint  <>
+      tx      = Constraints.mustMintValueWithRedeemer emptyRedeemer tokensToMint  <>
                 Constraints.mustPayToOtherScript (fractionNftValidatorHash params) datum valueToScript <>
                 payBackTokens
     ledgerTx <- submitTxConstraintsWith @Void lookups tx
@@ -142,8 +144,7 @@ returnNFT params@FractionNFTParameters{initTokenClass} _ = do
       amountToBurn = negate totalFractions
       tokensToBurn =  Value.singleton tokensCurrency fractionTokenName amountToBurn
 
-      emptyRedeemer = Nothing :: Maybe AddToken
-      mintRedeemer = Redeemer $ toBuiltinData ()
+      nothingRedeemer = Nothing :: Maybe AddToken
 
       -- build the constraints and submit
       validator = fractionValidatorScript params
@@ -153,8 +154,8 @@ returnNFT params@FractionNFTParameters{initTokenClass} _ = do
                 Constraints.unspentOutputs fracTokenUtxos <>
                 Constraints.ownPubKeyHash pkh
 
-      tx      = Constraints.mustMintValueWithRedeemer mintRedeemer tokensToBurn <>
-                Constraints.mustSpendScriptOutput nftRef ( Redeemer $ toBuiltinData emptyRedeemer ) <>
+      tx      = Constraints.mustMintValueWithRedeemer emptyRedeemer tokensToBurn <>
+                Constraints.mustSpendScriptOutput nftRef ( Redeemer $ toBuiltinData nothingRedeemer ) <>
                 Constraints.mustPayToPubKey pkh valueToWallet
 
     ledgerTx <- submitTxConstraintsWith @Void lookups tx
@@ -186,7 +187,7 @@ addNFT params AddNFT{an_asset, an_sigs} = do
     let
         --update datum incrementing the count of nfts
         updatedDatum = previousDatum { newNftClass = an_asset }
-        redeemer = Just AddToken { newToken=an_asset,signatures'=an_sigs}
+        redeemer = Just AddToken { signatures'=an_sigs}
         validatorScript = fractionNftValidatorInstance params
         tx       = collectFromScript utxosAtValidator redeemer <> mustPayToTheScript updatedDatum valueToScript
 
@@ -211,19 +212,18 @@ mintMoreTokens params MintMore{mm_count, mm_sigs} = do
       payBackTokens = mustPayToPubKey pkh tokensToMint
 
       -- keep the minted amount and asset class in the datum
-      newDatum = currentDatum{ totalFractions = currentFractions + mm_count}
-      mintRedeemer = Redeemer $ toBuiltinData mm_count
+      newDatum = currentDatum{ totalFractions = currentFractions + mm_count, newNftClass = tokensClass }
 
       -- preserve NFTs
       valueToScript = valueOfTxs utxosAtValidator
-      redeemer = Just AddToken { newToken=tokensClass,signatures'=mm_sigs }
+      redeemer = Just AddToken { signatures'=mm_sigs }
 
       --build the constraints and submit the transaction
       validator = fractionNftValidatorInstance params
       lookups = Constraints.mintingPolicy mintingScript  <>
                 Constraints.unspentOutputs utxosAtValidator <>
                 Constraints.typedValidatorLookups validator
-      tx      = Constraints.mustMintValueWithRedeemer mintRedeemer tokensToMint  <>
+      tx      = Constraints.mustMintValueWithRedeemer emptyRedeemer tokensToMint  <>
                 Constraints.mustPayToTheScript newDatum valueToScript <>
                 collectFromScript utxosAtValidator redeemer <>
                 payBackTokens

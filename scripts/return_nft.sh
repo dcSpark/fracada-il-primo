@@ -35,8 +35,7 @@ section "Select Collateral UTxO"
 getInputTx $SIGNING_WALLET
 COLLATERAL_TX=$SELECTED_UTXO
 
-# --tx-in-redeemer-value "{\"constructor\":1,\"fields\":[]}" \
-echo "pay NFT and mint fraction tokens"
+echo "pay NFT back and burn fraction tokens"
 $CARDANO_CLI transaction build \
 --alonzo-era \
 --testnet-magic $TESTNET_MAGIC_NUM \
@@ -44,10 +43,10 @@ $CARDANO_CLI transaction build \
 --tx-in ${NFT_UTXO} \
 --tx-in-script-file validator.plutus \
 --tx-in-datum-file datum.txt \
---tx-in-redeemer-file redeemer.txt \
+--tx-in-redeemer-file empty-redeemer.json \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \
---tx-out "${SELECTED_WALLET_ADDRESS} + 1 ${NFT_ASSET}" \
+--tx-out "${SELECTED_WALLET_ADDRESS} + 1379280 + 1 ${NFT_ASSET}" \
 --mint "-${FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
 --mint-script-file minting.plutus \
 --mint-redeemer-value {} \

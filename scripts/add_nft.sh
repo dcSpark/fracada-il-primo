@@ -68,7 +68,7 @@ $CARDANO_CLI transaction build \
 --tx-in ${NFT_UTXO} \
 --tx-in-script-file validator.plutus \
 --tx-in-datum-file current-datum.txt \
---tx-in-redeemer-file redeemer.txt \
+--tx-in-redeemer-file redeemer.json \
 --tx-in ${COLLATERAL_TX} \
 --tx-in ${NEW_NFT_UTXO} \
 --tx-in-collateral ${COLLATERAL_TX} \
@@ -78,11 +78,9 @@ $CARDANO_CLI transaction build \
 --protocol-params-file pparams.json \
 --out-file tx.raw
 
-. sign_send.sh $SIGNING_WALLET
-
-
 if [ $? -eq 0 ] 
 then 
+  . sign_send.sh $SIGNING_WALLET
   echo "Success" 
 else 
   echo "Failed, restoring datum state" >&2

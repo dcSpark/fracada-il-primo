@@ -1,5 +1,6 @@
 . exec_paths.sh
 . params.sh
+
 MIN_SIGS=2
 
 echo "Backup old scripts"

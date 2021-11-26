@@ -32,7 +32,6 @@ import qualified Data.ByteString.Base16 as B16
 import qualified Data.Text.Encoding     as TE
 
 data AddToken = AddToken {
-      newToken    :: AssetClass,
       signatures' :: ![Signature]
     } deriving (Generic, Show)
 
@@ -51,7 +50,7 @@ PlutusTx.makeIsDataIndexed ''FractionNFTParameters [('FractionNFTParameters,0)]
 data FractionNFTDatum = FractionNFTDatum {
       tokensClass    :: !AssetClass,
       totalFractions :: !Integer,
-      newNftClass    :: !AssetClass
+      newNftClass    :: !AssetClass -- required here so the signatures capture the actual nft being added
     } deriving (Generic, Show)
 
 PlutusTx.makeLift ''FractionNFTDatum
@@ -148,9 +147,7 @@ fractionNftValidator FractionNFTParameters{authorizedPubKeys, minSigRequired } F
     if isJust redeemer then
       -- adding nfts or minting, signatures are required
       let
-        -- newToken is in the datum too, we should get rid of it
-        Just AddToken {newToken, signatures' } = redeemer
-        (newTokenCurrId, newTokenTokenNm) = unAssetClass newToken
+        Just AddToken { signatures' } = redeemer
 
         ownDatumHash = ownNextDatumHash ctx
         outputDatum = case findDatum ownDatumHash txInfo of
@@ -160,7 +157,7 @@ fractionNftValidator FractionNFTParameters{authorizedPubKeys, minSigRequired } F
                         Nothing  -> traceError "error decoding data"
 
         FractionNFTDatum{tokensClass=tc', totalFractions= tf', newNftClass=nftc' } = outputDatum
-
+        (newTokenCurrId, newTokenTokenNm) = unAssetClass nftc'
         -- validate the datum hash is properly signed
         requiredSignatures = validateSignatures authorizedPubKeys minSigRequired signatures' ownDatumHash
       in
@@ -170,7 +167,7 @@ fractionNftValidator FractionNFTParameters{authorizedPubKeys, minSigRequired } F
               -- keep the NFTs ( the value locked doesn't change)
               valuePreserved = valueInContract == currentValueInContract
               -- update total count is the only change in the datum
-              datumUpdated = tc' == tokensClass && tf' == (totalFractions + forgedTokens) && nftc' == newNftClass
+              datumUpdated = tc' == tokensClass && tf' == (totalFractions + forgedTokens) && nftc' == tokensClass
               -- no other token is minted
               mintOnlyExpectedTokens = txInfoMint txInfo == assetClassValue tokensClass forgedTokens
             in
@@ -185,19 +182,23 @@ fractionNftValidator FractionNFTParameters{authorizedPubKeys, minSigRequired } F
           -- add new tokens to the lock
           let
 
-            -- the latest added token is the only change in the datum
-            datumUpdated = tc' == tokensClass && tf' == totalFractions && nftc' == newToken
-
             --extract the value increase
-            adaValue = toValue $ fromValue valueInContract
+            adaValue = toValue . fromValue
+            nonAdaValue :: Value -> Value
+            nonAdaValue val = val - (adaValue val)
+
             -- the value increase should match the new token and should be only 1
-            nonAdaValue = flattenValue $ valueInContract - adaValue - currentValueInContract
-            valueIncreaseMatchToken = case nonAdaValue of
-                [(currencyId', tokenName', increaseAmount)]  -> newTokenCurrId == currencyId' && newTokenTokenNm == tokenName' && increaseAmount == 1
-                _ -> False
+            -- and
+            -- the latest added token is the only change in the datum
+            nonAdaIncrease = flattenValue $ nonAdaValue (valueInContract - currentValueInContract)
+            (valueIncreaseMatchToken, datumUpdated) = case nonAdaIncrease of
+                [(currencyId', tokenName', increaseAmount)]  ->
+                                    ( newTokenCurrId == currencyId' && newTokenTokenNm == tokenName' && increaseAmount == 1,
+                                      tc' == tokensClass && tf' == totalFractions && nftc' == assetClass currencyId' tokenName' )
+                _ -> (False, False)
 
             -- validate the new token is not already added
-            tokenNotPresent = assetClassValueOf currentValueInContract newToken == 0
+            tokenNotPresent = assetClassValueOf currentValueInContract nftc' == 0
 
           in
             traceIfFalse "not enough signatures to add tokens"  requiredSignatures

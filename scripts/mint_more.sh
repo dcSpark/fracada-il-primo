@@ -54,7 +54,7 @@ $CARDANO_CLI transaction build \
 --tx-in ${NFT_UTXO} \
 --tx-in-script-file validator.plutus \
 --tx-in-datum-file current-datum.txt \
---tx-in-redeemer-file redeemer.txt \
+--tx-in-redeemer-file redeemer.json \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \
 --tx-out "$(cat wallets/validator.addr) + ${NFT_UTXO_LOVELACE} + ${NFT_UTXO_TOKENS}" \

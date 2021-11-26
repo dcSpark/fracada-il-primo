@@ -113,7 +113,7 @@ scenario2 = do
         expectedDatumAtAdd = FractionNFTDatum{ tokensClass= tokenClass, totalFractions = 10, newNftClass=nft2}
         newToken = AddNFT { an_asset= nft2, an_sigs= signDatumHash expectedDatumAtAdd}
 
-        expectedDatumAtMint = expectedDatumAtAdd { totalFractions = 30 }
+        expectedDatumAtMint = expectedDatumAtAdd { totalFractions = 30, newNftClass=tokenClass }
         mintMore = MintMore { mm_count= 20, mm_sigs= signDatumHash expectedDatumAtMint }
 
     callEndpoint @"fractionNFT" h1 toFraction
@@ -205,10 +205,10 @@ notLocked = do
     callEndpoint @"mintTokensNoNFT" h2 toFraction
     void $ Emulator.waitNSlots 1
 
-returnNFTNoFrac :: EmulatorTrace ()
-returnNFTNoFrac = do
+returnNFTNoTotalBurn :: Integer -> EmulatorTrace ()
+returnNFTNoTotalBurn toBurn = do
     h1 <- activateContractWallet (toMockWallet w1) $ OC.endpoints contractParams
-    h2 <- activateContractWallet (toMockWallet w2) $ Evil.endpoints contractParams
+    h2 <- activateContractWallet (toMockWallet w1) $ Evil.endpoints contractParams
     void $ Emulator.waitNSlots 1
     let
 
@@ -219,7 +219,7 @@ returnNFTNoFrac = do
     callEndpoint @"fractionNFT" h1 toFraction
     void $ Emulator.waitNSlots 1
 
-    callEndpoint @"returnNFTNoFrac" h2 ()
+    callEndpoint @"returnNFTNoFrac" h2 toBurn
     void $ Emulator.waitNSlots 1
 
 mintExtraTokens :: EmulatorTrace ()

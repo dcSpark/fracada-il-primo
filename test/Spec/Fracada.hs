@@ -36,7 +36,8 @@ useCaseTests =
         , checkPredicateOptions options "No new NFTs (lock NFT with minting, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario3
         , checkPredicateOptions options "Full scenario (lock NFT with minting, mint more tokens, add more NFTs, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario4
         -- validation error scenarios
-        , checkPredicateOptions options "Can't return the nft if fractional tokens aren't burned" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not burned", "PT5"] _) -> True; _ -> False  })) E.returnNFTNoFrac
+        , checkPredicateOptions options "Can't return the nft if fractional tokens aren't burned" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not burned", "PT5"] _) -> True; _ -> False  })) $ E.returnNFTNoTotalBurn 0
+        , checkPredicateOptions options "Can't return the nft if not all fractional tokens aren't burned" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not burned", "PT5"] _) -> True; _ -> False  })) $ E.returnNFTNoTotalBurn 5
         , checkPredicateOptions options "Can't mint fractional tokens" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["datum not updated forging tokens", "PT5"] _) -> True; _ -> False  })) E.mintExtraTokens
         , checkPredicateOptions options "Can't add unsigned nft" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["not enough signatures to add tokens", "PT5"] _) -> True; _ -> False  })) E.unsignedNFT
         , checkPredicateOptions options "Can't mint unsigned tokens" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["not enough signatures for minting", "PT5"] _) -> True; _ -> False  })) E.unsignedMinting
