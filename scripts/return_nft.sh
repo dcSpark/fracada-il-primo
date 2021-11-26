@@ -32,14 +32,8 @@ NFT_UTXO_LOVELACE=$SELECTED_UTXO_LOVELACE
 NFT_UTXO_TOKENS=$SELECTED_UTXO_TOKENS
 
 section "Select Collateral UTxO"
-getInputTx fees
+getInputTx $SIGNING_WALLET
 COLLATERAL_TX=$SELECTED_UTXO
-
-#echo "build empty redeemer"
-#${BUILD_REDEEMER}
-
-#build datum
-# ${BUILD_DATUM} new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
 
 # --tx-in-redeemer-value "{\"constructor\":1,\"fields\":[]}" \
 echo "pay NFT and mint fraction tokens"
@@ -53,7 +47,7 @@ $CARDANO_CLI transaction build \
 --tx-in-redeemer-file redeemer.txt \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \
---tx-out "${SELECTED_WALLET_ADDRESS} + 1620654 + 1 ${NFT_ASSET}" \
+--tx-out "${SELECTED_WALLET_ADDRESS} + 1 ${NFT_ASSET}" \
 --mint "-${FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
 --mint-script-file minting.plutus \
 --mint-redeemer-value {} \

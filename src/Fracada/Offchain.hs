@@ -143,7 +143,7 @@ returnNFT params@FractionNFTParameters{initTokenClass} _ = do
       tokensToBurn =  Value.singleton tokensCurrency fractionTokenName amountToBurn
 
       emptyRedeemer = Nothing :: Maybe AddToken
-      mintRedeemer = Redeemer $ toBuiltinData amountToBurn
+      mintRedeemer = Redeemer $ toBuiltinData ()
 
       -- build the constraints and submit
       validator = fractionValidatorScript params
