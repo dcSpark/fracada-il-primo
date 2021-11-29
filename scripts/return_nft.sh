@@ -42,7 +42,7 @@ $CARDANO_CLI transaction build \
 --tx-in ${FRACTIONS_UTXO} \
 --tx-in ${NFT_UTXO} \
 --tx-in-script-file validator.plutus \
---tx-in-datum-file datum.txt \
+--tx-in-datum-file datum.json \
 --tx-in-redeemer-file empty-redeemer.json \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \

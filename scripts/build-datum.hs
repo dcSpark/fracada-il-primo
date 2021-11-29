@@ -80,6 +80,6 @@ main = do
 
       putStrLn $ "encoded datum: " ++ show encoded
       putStrLn $ "datum hash: " ++ show datHash
-      BL8.writeFile "datum.txt"  encoded
+      BL8.writeFile "datum.json"  encoded
       BL8.writeFile "datum-hash.txt"  datHash
 
