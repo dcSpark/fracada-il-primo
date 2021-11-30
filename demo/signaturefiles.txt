@@ -1,0 +1,3 @@
+d1.sign
+d2.sign
+d3.sign
