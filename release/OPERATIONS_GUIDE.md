@@ -6,7 +6,7 @@ Here we describe the steps to execute for each functionality.
 
 ## Configuration
 
-The different scripts will read the confgiuration
+The different scripts will read the configuration
 The following environment variables must be defined:
 
 * NFT_CURRENCY
@@ -105,7 +105,7 @@ bin/sign datum-hash.txt {signing key file} {output file}
 
 ### Build and submit the transaction to add a new NFT
 
-When you collect a sufficient number of signatures, the process can continue and the transaction can be submited. Calling:  
+When you collect a sufficient number of signatures, the process can continue and the transaction can be submitted. Calling:  
 
 ```sh
 continue_add_nft_{nft currency id}_{nft token name}.sh {wallet}
@@ -116,17 +116,7 @@ It will build the redeemer with the sign files listed in `signaturefiles.txt` an
 
 ## Mint more fractional tokens
 
-```sh
-mint_more.sh {amount}
-```
-
-sign the generated datum
-
-```sh
-continue with continue_mint_{amount}.sh {wallet}
-```
-
-Similarly, to mint more fractional tokens, it first must be approved by the authorized signatures (defined in the initial setup in the `authorized_keys.txt` file ), so the process is broken into three steps:
+To mint more fractional tokens, it first must be approved by the authorized signatures (defined in the initial setup in the `authorized_keys.txt` file ), so the process is broken into three steps:
 
 * generate the datum and datum hash updating the total count of fractional tokens minted
 * Enough approvers signed the datum-hash.txt
@@ -155,7 +145,7 @@ bin/sign datum-hash.txt {signing key file} {output file}
 
 ### Build and submit the mint more transaction
 
-When you collect a sufficient number of signatures, the process can continue and the transaction can be submited. Calling:  
+When you collect a sufficient number of signatures, the process can continue and the transaction can be submitted. Calling:  
 
 ```sh
 continue_mint_${extra amount to mint}.sh {wallet}
