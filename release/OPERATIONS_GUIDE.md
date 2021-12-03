@@ -65,16 +65,16 @@ It will generate the following output files:
 
 ## Lock NFT and initial mint
 
-To lock the inital NFT and mint the fractional tokens, run:
+To lock the initial NFT and mint the fractional tokens, run:
 
 ```sh
 lock_nft.sh {wallet} {initial amount to mint}
 ```
 
-Where `{wallet}` is the name of the `.addr` file in wallet folder that contains the address of the wallet holding the NFT, and `{initial amount to mint}` is the number of fractional tokens to mint. You will be prompted to select the NFT and collateral utxo, and the transaction will be built, signed, and sent (using sign_send.sh)
+Where `{wallet}` is the name of the `.addr` file in wallet folder that contains the address of the wallet holding the NFT, and `{initial amount to mint}` is the number of fractional tokens to mint. You will be prompted to select the NFT and collateral utxo, and the transaction will be built, signed, and sent (using `sign_send.sh`).
 The current datum will be saved in the `datum.json` file.
 
-## Include aditional NFTs in the contract
+## Include additional NFTs in the contract
 
 To add a new NFT to the contract, it first must be approved by the authorized signatures (defined in the initial setup in the `authorized_keys.txt` file ), so the process is broken into three steps:
 
