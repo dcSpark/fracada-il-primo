@@ -38,7 +38,7 @@ COLLATERAL_TX=$SELECTED_UTXO
 echo "pay NFT back and burn fraction tokens"
 $CARDANO_CLI transaction build \
 --alonzo-era \
---testnet-magic $TESTNET_MAGIC_NUM \
+--$NETWORK_SELECTION \
 --tx-in ${FRACTIONS_UTXO} \
 --tx-in ${NFT_UTXO} \
 --tx-in-script-file validator.plutus \

@@ -9,5 +9,8 @@ cp currency-id.txt currency-id.txt.bk
 
 #generate script
 ${SCRIPT_DUMP} ${NFT_CURRENCY} ${NFT_TOKEN} ${FRACT_TOKEN} ${MIN_SIGS} < authorized_keys.txt
+#Build validator's address
+$CARDANO_CLI address build --payment-script-file validator.plutus --$NETWORK_SELECTION --out-file wallets/validator.addr
 
-$CARDANO_CLI address build --payment-script-file validator.plutus --testnet-magic $TESTNET_MAGIC_NUM --out-file wallets/validator.addr
+#Query protocol parameters
+${CARDANO_CLI} query protocol-parameters --testnet-magic  $TESTNET_MAGIC_NUM --out-file pparams.json

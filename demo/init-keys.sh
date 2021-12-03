@@ -12,7 +12,7 @@ $CARDANO_CLI address build \
 --payment-verification-key-file address/payment2.vkey \
 --stake-verification-key-file address/stake2.vkey \
 --out-file address/payment2.addr \
---testnet-magic $TESTNET_MAGIC_NUM
+--$NETWORK_SELECTION
 
 #fee address
 $CARDANO_CLI address key-gen \
@@ -28,7 +28,7 @@ $CARDANO_CLI address build \
 --payment-verification-key-file address/fees.vkey \
 --stake-verification-key-file address/fees_stk.vkey \
 --out-file address/fees.addr \
---testnet-magic $TESTNET_MAGIC_NUM 
+--$NETWORK_SELECTION 
 
 
 # 3 signatures

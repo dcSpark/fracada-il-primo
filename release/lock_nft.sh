@@ -36,7 +36,7 @@ ${BUILD_DATUM} new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUN
 # pay NFT and mint fraction tokens
 $CARDANO_CLI transaction build \
 --alonzo-era \
---testnet-magic $TESTNET_MAGIC_NUM \
+--$NETWORK_SELECTION \
 --tx-in ${NFT_UTXO} \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \

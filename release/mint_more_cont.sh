@@ -37,7 +37,7 @@ ${BUILD_REDEEMER} ${FRACT_CURRENCY} ${FRACT_TOKEN}  < signaturefiles.txt
 echo "Mint fraction tokens"
 $CARDANO_CLI transaction build \
 --alonzo-era \
---testnet-magic $TESTNET_MAGIC_NUM \
+--$NETWORK_SELECTION \
 --tx-in ${NFT_UTXO} \
 --tx-in-script-file validator.plutus \
 --tx-in-datum-file current-datum.json \

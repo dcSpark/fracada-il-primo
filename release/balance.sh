@@ -1,2 +1,2 @@
-$CARDANO_CLI query utxo --address $(cat ./wallets/$1.addr) --testnet-magic $TESTNET_MAGIC_NUM | | nl -v-1
+$CARDANO_CLI query utxo --address $(cat ./wallets/$1.addr) --$NETWORK_SELECTION | | nl -v-1
 
