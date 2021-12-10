@@ -33,7 +33,7 @@ import           Text.Printf         (printf)
 
 import           Fracada.Minting
 import           Fracada.Validator
-import qualified Prelude             as Prelude
+import qualified Prelude
 
 data ToFraction = ToFraction
     {
@@ -109,7 +109,8 @@ fractionNFT params@FractionNFTParameters{initTokenClass, authorizedPubKeys} ToFr
                 Constraints.otherScript validator
       tx      = Constraints.mustMintValueWithRedeemer emptyRedeemer tokensToMint  <>
                 Constraints.mustPayToOtherScript (fractionNftValidatorHash params) datum valueToScript <>
-                payBackTokens
+                payBackTokens <>
+                mustIncludeDatum datum
     ledgerTx <- submitTxConstraintsWith @Void lookups tx
     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "forged %s for NFT %s" (show fractions) (show initTokenClass)
@@ -180,7 +181,7 @@ addNFT params AddNFT{an_asset, an_sigs} = do
     utxosAtValidator <- utxosAt ( fractionNftValidatorAddress params)
     let
       -- value of NFT
-      valueToScript = (valueOfTxs utxosAtValidator) <> assetClassValue an_asset 1
+      valueToScript = valueOfTxs utxosAtValidator <> assetClassValue an_asset 1
       nftTx = snd.head $ Map.toList utxosAtValidator
 
     previousDatum <- extractData nftTx
@@ -189,7 +190,9 @@ addNFT params AddNFT{an_asset, an_sigs} = do
         updatedDatum = previousDatum { newNftClass = an_asset }
         redeemer = Just AddToken { signatures'=an_sigs}
         validatorScript = fractionNftValidatorInstance params
-        tx       = collectFromScript utxosAtValidator redeemer <> mustPayToTheScript updatedDatum valueToScript
+        tx       = collectFromScript utxosAtValidator redeemer <>
+                   mustPayToTheScript updatedDatum valueToScript <>
+                   mustIncludeDatum (toDatum updatedDatum)
 
     void $ submitTxConstraintsSpending validatorScript utxosAtValidator tx
     Contract.logInfo @String $ printf "added new NFT %s" (show an_asset)
@@ -220,11 +223,12 @@ mintMoreTokens params MintMore{mm_count, mm_sigs} = do
 
       --build the constraints and submit the transaction
       validator = fractionNftValidatorInstance params
-      lookups = Constraints.mintingPolicy mintingScript  <>
+      lookups = mintingPolicy mintingScript  <>
                 Constraints.unspentOutputs utxosAtValidator <>
-                Constraints.typedValidatorLookups validator
-      tx      = Constraints.mustMintValueWithRedeemer emptyRedeemer tokensToMint  <>
-                Constraints.mustPayToTheScript newDatum valueToScript <>
+                typedValidatorLookups validator
+      tx      = mustMintValueWithRedeemer emptyRedeemer tokensToMint  <>
+                mustPayToTheScript newDatum valueToScript <>
+                mustIncludeDatum (toDatum newDatum) <>
                 collectFromScript utxosAtValidator redeemer <>
                 payBackTokens
     ledgerTx <- submitTxConstraintsWith @Fractioning lookups tx

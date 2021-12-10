@@ -21,6 +21,14 @@ import qualified PlutusTx
 import           PlutusTx.Prelude     hiding (Semigroup (..), unless)
 
 
+
+findDatumTyped :: (PlutusTx.FromData a) => TxInfo -> DatumHash -> a
+findDatumTyped info dh = case findDatum dh info of
+                            Nothing        -> traceError "datum not found"
+                            Just (Datum d) ->  case PlutusTx.fromBuiltinData d of
+                                Just ad' -> ad'
+                                Nothing  -> traceError "error decoding data"
+
 {-# INLINABLE mintFractionTokens #-}
 mintFractionTokens :: ValidatorHash -> AssetClass -> TokenName -> BuiltinData -> ScriptContext -> Bool
 mintFractionTokens fractionNFTScript asset fractionTokenName _ ctx =
@@ -37,8 +45,20 @@ mintFractionTokens fractionNFTScript asset fractionTokenName _ ctx =
         lockedByNFTfractionScript = valueLockedBy info fractionNFTScript
         -- require that the nft is locked
         assetIsLocked = assetClassValueOf lockedByNFTfractionScript asset == 1
+        [(outValidatorDH,_)] = scriptOutputsAt fractionNFTScript info
+        outDatumTokenCount = totalFractions $ findDatumTyped info outValidatorDH
+
+        inputDatums = mapMaybe (txOutDatumHash.txInInfoResolved) $ txInfoInputs info
+
+        mintDeclared = outDatumTokenCount == mintedAmount
       in
-        traceIfFalse "Asset not locked" assetIsLocked
+        if null inputDatums then
+          -- initial mint, validate datum is consistent
+          traceIfFalse "Asset not locked" assetIsLocked
+          && traceIfFalse "Wrong amount minted" mintDeclared
+        else
+          -- subsequent minting datums are checked by fraction validator
+          traceIfFalse "Asset not locked" assetIsLocked
     else if mintedAmount < 0 then
       let
         -- make sure the asset is spent

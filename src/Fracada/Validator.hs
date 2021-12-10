@@ -95,10 +95,6 @@ findOwnInput' ctx = fromMaybe (error ()) (findOwnInput ctx)
 valueWithin :: TxInInfo -> Value
 valueWithin = txOutValue . txInInfoResolved
 
-{-# INLINABLE datumToData #-}
-datumToData :: (PlutusTx.FromData a) => Datum -> Maybe a
-datumToData datum = PlutusTx.fromBuiltinData $ PlutusTx.toBuiltinData (getDatum datum)
-
 {-# INLINABLE findNewOwnDatum #-}
 findNewOwnDatum :: ScriptContext -> Datum
 findNewOwnDatum ctx = let
@@ -111,6 +107,9 @@ findNewOwnDatum ctx = let
                 Nothing    -> traceError "New datum not found"
 
 
+{-# INLINABLE toDatum #-}
+toDatum :: PlutusTx.ToData o => o -> Datum
+toDatum = Datum . PlutusTx.toBuiltinData
 
 fromCurrencySymbol :: CurrencySymbol -> String
 fromCurrencySymbol =  Text.unpack . TE.decodeUtf8 . B16.encode . fromBuiltin . unCurrencySymbol
@@ -185,7 +184,7 @@ fractionNftValidator FractionNFTParameters{authorizedPubKeys, minSigRequired } F
             --extract the value increase
             adaValue = toValue . fromValue
             nonAdaValue :: Value -> Value
-            nonAdaValue val = val - (adaValue val)
+            nonAdaValue val = val - adaValue val
 
             -- the value increase should match the new token and should be only 1
             -- and
