@@ -191,6 +191,18 @@ scenario4 = do
 
     callEndpoint @"returnNFT" h1 ()
 
+initialExtraMint :: EmulatorTrace ()
+initialExtraMint = do
+    h2 <- activateContractWallet (toMockWallet w2) $ Evil.endpoints contractParams
+    void $ Emulator.waitNSlots 1
+    let
+
+
+        tknName = tokenName "Frac"
+        toFraction = ToFraction { fractions = 10, fractionTokenName = tknName }
+
+    callEndpoint @"extraFractionNFT" h2 toFraction
+    void $ Emulator.waitNSlots 1
 
 notLocked :: EmulatorTrace ()
 notLocked = do
