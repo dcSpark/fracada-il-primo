@@ -38,7 +38,41 @@ import           Fracada.Validator
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified PlutusTx
 
--- mint fractional tokens without paying the inital NFT
+-- try to mint more than what's declared in the datum
+extraFractionNFT :: FractionNFTParameters -> ToFraction -> Contract w FracNFTEvilSchema Text ()
+extraFractionNFT params@FractionNFTParameters{initTokenClass, authorizedPubKeys} ToFraction {fractions, fractionTokenName} = do
+  -- pay nft to contract
+  -- pay minted tokens back to signer
+    pkh   <- Contract.ownPubKeyHash
+    let
+
+      --find the minting script instance
+      mintingScript = mintFractionTokensPolicy params fractionTokenName
+
+      -- define the value to mint (amount of tokens) and be paid to signer
+      currency = scriptCurrencySymbol mintingScript
+      tokensToMint =  Value.singleton currency fractionTokenName fractions
+      moreTokensToMint =  Value.singleton currency fractionTokenName (fractions + 100)
+      payBackTokens = mustPayToPubKey pkh tokensToMint
+      -- value of NFT
+      valueToScript = assetClassValue initTokenClass 1
+      -- keep the minted amount and asset class in the datum
+      fractionAsset =  assetClass currency fractionTokenName
+      datum = Datum $ toBuiltinData FractionNFTDatum{ tokensClass= fractionAsset, totalFractions = fractions, newNftClass = fractionAsset}
+
+      --build the constraints and submit the transaction
+      validator = fractionValidatorScript params
+      lookups = Constraints.mintingPolicy mintingScript  <>
+                Constraints.otherScript validator
+      tx      = Constraints.mustMintValueWithRedeemer emptyRedeemer moreTokensToMint  <>
+                Constraints.mustPayToOtherScript (fractionNftValidatorHash params) datum valueToScript <>
+                payBackTokens
+    ledgerTx <- submitTxConstraintsWith @Void lookups tx
+    void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
+    Contract.logInfo @String $ printf "forged %s for NFT %s" (show fractions) (show initTokenClass)
+    Contract.logInfo @String $ printf "pks %s" (show authorizedPubKeys)
+
+-- mint fractional tokens without paying the initial NFT
 mintTokensNoNFT :: FractionNFTParameters -> ToFraction -> Contract w FracNFTEvilSchema Text ()
 mintTokensNoNFT params@FractionNFTParameters{initTokenClass} ToFraction {fractions, fractionTokenName} = do
   -- pay nft to contract
@@ -378,7 +412,8 @@ returnNoNFT params _ = do
     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
     Contract.logInfo @String $ printf "burnt %s" (show totalFractions)
 
-type FracNFTEvilSchema = Endpoint "mintTokensNoNFT" ToFraction
+type FracNFTEvilSchema = Endpoint "extraFractionNFT" ToFraction
+    .\/ Endpoint "mintTokensNoNFT" ToFraction
     .\/ Endpoint "returnNFTNoFrac" Integer
     .\/ Endpoint "addMoreNFT" AddNFT
     .\/ Endpoint "mintExtraTokens" MintMore
@@ -392,9 +427,10 @@ endpoints :: FractionNFTParameters ->  Contract () FracNFTEvilSchema Text ()
 endpoints params = forever
                 $ handleError logError
                 $ awaitPromise
-                $ mintTokensNoNFT' `select` burn' `select` addNFT' `select` mintMoreTokens'
+                $ extraFractionNFT' `select` mintTokensNoNFT' `select` burn' `select` addNFT' `select` mintMoreTokens'
                   `select` mintSteal' `select` mintVariousTokens' `select` addNFTNoDatumUpd' `select` partialReturn' `select` returnNoNFT'
           where
+            extraFractionNFT' = endpoint @"extraFractionNFT" $ extraFractionNFT params
             mintTokensNoNFT' = endpoint @"mintTokensNoNFT" $ mintTokensNoNFT params
             burn' = endpoint @"returnNFTNoFrac" $ returnNFTNoFrac params
             addNFT' = endpoint @"addMoreNFT" $ addMoreNFT params

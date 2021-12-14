@@ -32,10 +32,10 @@ useCaseTests =
         .&&. endpointAvailable @"mintMoreTokens" contract (Trace.walletInstanceTag $ toMockWallet  E.w1)
         ) $ void (Trace.activateContractWallet (toMockWallet E.w1) contract)
         , checkPredicateOptions options "Can lock NFT, mint fractional tokens, and exchange the NFT back when burning the tokens" assertNoFailedTransactions E.scenario1
-        , checkPredicateOptions options "Full scenario (lock NFT with minting, add more NFTs, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario2
-        , checkPredicateOptions options "No new NFTs (lock NFT with minting, mint more tokens, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario3
-        , checkPredicateOptions options "Full scenario (lock NFT with minting, mint more tokens, add more NFTs, return all NFTs in echange of tokens" assertNoFailedTransactions E.scenario4
-        -- validation error scenarios
+        , checkPredicateOptions options "Full scenario (lock NFT with minting, add more NFTs, mint more tokens, return all NFTs in exchange of tokens" assertNoFailedTransactions E.scenario2
+        , checkPredicateOptions options "No new NFTs (lock NFT with minting, mint more tokens, return all NFTs in exchange of tokens" assertNoFailedTransactions E.scenario3
+        , checkPredicateOptions options "Full scenario (lock NFT with minting, mint more tokens, add more NFTs, return all NFTs in exchange of tokens" assertNoFailedTransactions E.scenario4
+        -- -- validation error scenarios
         , checkPredicateOptions options "Can't return the nft if fractional tokens aren't burned" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not burned", "PT5"] _) -> True; _ -> False  })) $ E.returnNFTNoTotalBurn 0
         , checkPredicateOptions options "Can't return the nft if not all fractional tokens aren't burned" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Tokens not burned", "PT5"] _) -> True; _ -> False  })) $ E.returnNFTNoTotalBurn 5
         , checkPredicateOptions options "Can't mint fractional tokens" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["datum not updated forging tokens", "PT5"] _) -> True; _ -> False  })) E.mintExtraTokens
@@ -48,6 +48,7 @@ useCaseTests =
         , checkPredicateOptions options "datum not updated adding NFTs" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["datum not updated adding NFTs", "PT5"] _) -> True; _ -> False  })) E.addNFTNoUpdate
         , checkPredicateOptions options "Must return all NFTs" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["not all NFTs returned", "PT5"] _) -> True; _ -> False  })) E.dontRemoveAll
         -- minting error scenarios
+        , checkPredicateOptions options "Can't mint different than declared" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Wrong amount minted", "PT5"] _) -> True; _ -> False  })) E.initialExtraMint
         , checkPredicateOptions options "Can't mint if not locked" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Asset not locked", "PT5"] _) -> True; _ -> False  })) E.notLocked
         , checkPredicateOptions options "Can't burn if NFTs not returned" ( assertFailedTransaction (\_ err _ -> case err of {ScriptFailure (EvaluationError ["Asset not returned", "PT5"] _) -> True; _ -> False  })) E.burnNoNFT
          ]

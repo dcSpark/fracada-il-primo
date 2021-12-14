@@ -1,21 +1,15 @@
 
-import           Ledger
 import           Prelude
 import           System.Environment
 
 import           Cardano.Api
 
-import qualified Plutus.V1.Ledger.Api       as Plutus
 
 
 import qualified Cardano.Crypto.Wallet      as Crypto
-import           Data.ByteArray             hiding (length)
-import qualified Data.ByteArray             as BA
-import qualified Data.ByteString            as B
 import qualified Data.ByteString.Base16     as B16
 import qualified Data.ByteString.Lazy       as LB
 import qualified Data.ByteString.Lazy.Char8 as BL8
-import           Text.Printf                (printf)
 
 
 
