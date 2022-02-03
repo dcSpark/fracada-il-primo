@@ -8,13 +8,32 @@ Copyright:          © 2021 dcSpark
 License:            NONE
 License-files:      LICENSE
 
+flag defer-plugin-errors
+    description:
+        Defer errors from the plugin, useful for things like Haddock that can't handle it.
+    default: True
+    manual: True
+
+flag erase-costly-newtypes
+    description:
+        Newtypes aren't zero-cost in Plutus (especially on script size).
+        This flag enables type erasure for production
+    default: False
+    manual: True
+
+flag erase-debug-messages
+    description:
+        Debug messages take some space in on-chain scripts.
+        This flags removes them.
+    default: False
+    manual: True
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain
+  exposed-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain, Fracada.Utils
   build-depends:       aeson
                      -- , base ^>=4.14.1.0
-                     , base 
+                     , base
                      , bytestring
                      , containers
                      , freer-extras
@@ -22,6 +41,7 @@ library
                      , plutus-contract
                      , plutus-ledger
                      , plutus-ledger-api
+                     , plutus-ledger-constraints
                      , cardano-ledger-alonzo
                      , cardano-api
                      , plutus-tx
@@ -52,12 +72,16 @@ library
                       MultiParamTypeClasses
                       ScopedTypeVariables
                       StandaloneKindSignatures
-  ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
+  ghc-options:   -Wall -Wnoncanonical-monad-instances -Wunused-packages
+                 -Wincomplete-uni-patterns -Wincomplete-record-updates
+                 -Wredundant-constraints -Widentities
+                 -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+
 
 executable           build-datum
   main-is:           build-datum.hs
   hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Validator
+  other-modules:     Fracada.Validator, Fracada.Utils
   build-depends:     base
                     , aeson
                     , cardano-api
@@ -98,12 +122,15 @@ executable           build-datum
                       MultiParamTypeClasses
                       ScopedTypeVariables
                       StandaloneKindSignatures
-  ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
+  ghc-options:   -Wall -Wnoncanonical-monad-instances -Wunused-packages
+                 -Wincomplete-uni-patterns -Wincomplete-record-updates
+                 -Wredundant-constraints -Widentities
+                 -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
 
 executable           build-redeemer
   main-is:           build-redeemer.hs
   hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Validator
+  other-modules:     Fracada.Validator, Fracada.Utils
   build-depends:     base
                     , aeson
                     , cardano-api
@@ -144,14 +171,21 @@ executable           build-redeemer
                       MultiParamTypeClasses
                       ScopedTypeVariables
                       StandaloneKindSignatures
-  ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
-
-
+  ghc-options:        -Wall
+                      -Wcompat
+                      -Wincomplete-record-updates
+                      -Wincomplete-uni-patterns
+                      -Wredundant-constraints
+                      -Werror
+                      -Wpartial-fields
+                      -fobject-code
+                      -fno-ignore-interface-pragmas
+                      -fno-omit-interface-pragmas
 
 executable           script-dump
   main-is:           script-dump.hs
   hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain
+  other-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain, Fracada.Utils
   build-depends:     base
                     , fracada-il-primo
                     , aeson
@@ -192,14 +226,34 @@ executable           script-dump
                       MultiParamTypeClasses
                       ScopedTypeVariables
                       StandaloneKindSignatures
-  ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
+  ghc-options:        -Wall
+                      -Wcompat
+                      -Wincomplete-record-updates
+                      -Wincomplete-uni-patterns
+                      -Wredundant-constraints
+                      -Werror
+                      -Wpartial-fields
+                      -fobject-code
+                      -fno-ignore-interface-pragmas
+                      -fno-omit-interface-pragmas
+
 
 executable           fracada-scripts
   main-is:           Main.hs
   hs-source-dirs:    scripts, test
 
-  other-modules:     Spec.Fracada, Spec.Scenarios, Spec.EvilEndpoints
-  ghc-options:       -Wall -Wnoncanonical-monad-instances -Wincomplete-uni-patterns -Wincomplete-record-updates -Wredundant-constraints -Widentities -rtsopts -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+  other-modules:     Spec.Fracada, Spec.Scenarios, Spec.EvilEndpoints, Fracada.Utils
+  ghc-options:       -Wall
+                      -Wcompat
+                      -Wincomplete-record-updates
+                      -Wincomplete-uni-patterns
+                      -Wredundant-constraints
+                      -Werror
+                      -Wpartial-fields
+                      -fobject-code
+                      -fno-ignore-interface-pragmas
+                      -fno-omit-interface-pragmas
+
   build-depends:     base
                     , aeson
                     , cardano-api
@@ -209,6 +263,8 @@ executable           fracada-scripts
                     , plutus-tx-plugin
                     , plutus-contract
                     , plutus-ledger
+                    , plutus-ledger-api
+                    , plutus-ledger-constraints
                     , base
                     , bytestring
                     , cardano-crypto-class
@@ -256,12 +312,13 @@ test-suite          fracada-test
   type:             exitcode-stdio-1.0
   main-is:          Spec.hs
   hs-source-dirs:   test, src
-  other-modules:    Spec.Fracada, Spec.Scenarios, Fracada.Minting, Fracada.Validator, Fracada.Offchain, Spec.EvilEndpoints
+  other-modules:    Spec.Fracada, Spec.Scenarios, Fracada.Minting, Fracada.Validator, Fracada.Offchain, Spec.EvilEndpoints, Fracada.Utils
   build-depends:     base
                     , fracada-il-primo
                     , aeson
                     , cardano-api
-                  , cardano-crypto-class
+                    , cardano-crypto
+                    , cardano-crypto-class
                     , cardano-ledger-alonzo
                     , bytestring
                     , containers
@@ -270,24 +327,25 @@ test-suite          fracada-test
                     , plutus-contract
                     , plutus-ledger
                     , plutus-ledger-api
+                    , plutus-ledger-constraints
                     , plutus-tx
                     , plutus-tx-plugin
                     , text
                     , playground-common
-                  , freer-simple
-                  , foldl
-                  , streaming
-                  , QuickCheck
-                  , tasty
-                  , tasty-hunit
-                  , tasty-hedgehog
-                  , tasty-golden
-                  , tasty-quickcheck
-                  , mtl
+                    , freer-simple
+                    , foldl
+                    , streaming
+                    , QuickCheck
+                    , tasty
+                    , tasty-hunit
+                    , tasty-hedgehog
+                    , tasty-golden
+                    , tasty-quickcheck
+                    , mtl
                     , lens
                     , data-default
                     , tasty
-                    , base16-bytestring 
+                    , base16-bytestring
   default-language:   Haskell2010
   default-extensions: DataKinds
                       DeriveAnyClass
@@ -309,15 +367,25 @@ test-suite          fracada-test
                       MultiParamTypeClasses
                       ScopedTypeVariables
                       StandaloneKindSignatures
-  ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise   
+  ghc-options:        -Wall
+                      -Wcompat
+                      -Wincomplete-record-updates
+                      -Wincomplete-uni-patterns
+                      -Wredundant-constraints
+                      -Werror
+                      -Wpartial-fields
+                      -fobject-code
+                      -fno-ignore-interface-pragmas
+                      -fno-omit-interface-pragmas
+
   if !(impl(ghcjs) || os(ghcjs))
-    build-depends: plutus-tx-plugin -any               
+    build-depends: plutus-tx-plugin -any
 
 
 executable           sign
   main-is:           sign.hs
   hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Validator
+  other-modules:     Fracada.Validator, Fracada.Utils
   build-depends:     base
                     , aeson
                     , cardano-api
@@ -361,4 +429,14 @@ executable           sign
                       MultiParamTypeClasses
                       ScopedTypeVariables
                       StandaloneKindSignatures
-  ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
+  ghc-options:        -Wall
+                      -Wcompat
+                      -Wincomplete-record-updates
+                      -Wincomplete-uni-patterns
+                      -Wredundant-constraints
+                      -Werror
+                      -Wpartial-fields
+                      -fobject-code
+                      -fno-ignore-interface-pragmas
+                      -fno-omit-interface-pragmas
+                      -Wincomplete-uni-patterns
