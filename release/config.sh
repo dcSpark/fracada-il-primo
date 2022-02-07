@@ -5,3 +5,5 @@ export CARDANO_NODE_SOCKET_PATH=~/encrypted/dcSpark/cardano-node/mainnet/db/node
 
 # replace with 'mainnet' to use the main network
 export NETWORK_SELECTION="testnet-magic $TESTNET_MAGIC_NUM"
+
+export MIN_ADA=1379280

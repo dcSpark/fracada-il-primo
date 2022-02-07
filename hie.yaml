@@ -1,0 +1,16 @@
+cradle:
+  cabal:
+    - path: "./src/"
+      component: "lib:fracada-il-primo"
+    - path: "./test"
+      component: "test:fracada-test"
+    - path: "./scripts/build-datum.hs"
+      component: "exe:build-datum"
+    - path: "./scripts/build-redeemer.hs"
+      component: "exe:build-redeemer"
+    - path: "./scripts/Main.hs"
+      component: "exe:fracada-scripts"
+    - path: "./scripts/script-dump.hs"
+      component: "exe:script-dump"
+    - path: "./scripts/sign.hs"
+      component: "exe:sign"

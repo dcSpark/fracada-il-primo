@@ -1,4 +1,3 @@
-. exec_paths.sh
 . params.sh
 
 echo "Backup old scripts"

@@ -1,0 +1,1 @@
+cabal run script-dump -- $@

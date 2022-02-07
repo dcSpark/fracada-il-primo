@@ -28,7 +28,6 @@ NEW_NFT_TOKEN_HEX=$(echo -n $NEW_NFT_TOKEN | xxd -p)
 NEW_NFT_ASSET=$NEW_NFT_CURRENCY.$NEW_NFT_TOKEN_HEX
 
 . config.sh
-. exec_paths.sh
 . functions.sh
 . params.sh
 
@@ -47,7 +46,7 @@ getInputTx $SIGNING_WALLET
 COLLATERAL_TX=$SELECTED_UTXO
 
 echo "building redeemer"
-${BUILD_REDEEMER} ${NEW_NFT_CURRENCY} ${NEW_NFT_TOKEN}  < signaturefiles.txt
+build-redeemer.sh ${NEW_NFT_CURRENCY} ${NEW_NFT_TOKEN}  < signaturefiles.txt
 
 echo "add NFT"
 $CARDANO_CLI transaction build \

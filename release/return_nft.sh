@@ -1,5 +1,4 @@
 . config.sh
-. exec_paths.sh
 . functions.sh
 . params.sh
 
@@ -46,7 +45,7 @@ $CARDANO_CLI transaction build \
 --tx-in-redeemer-file empty-redeemer.json \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \
---tx-out "${SELECTED_WALLET_ADDRESS} + 1379280 + 1 ${NFT_ASSET}" \
+--tx-out "${SELECTED_WALLET_ADDRESS} + ${MIN_ADA} + 1 ${NFT_ASSET}" \
 --mint "-${FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
 --mint-script-file minting.plutus \
 --mint-redeemer-value {} \

@@ -35,10 +35,6 @@ Initial nft asset and factional asset derived from the environment variables def
 
 node and network parameters required by cardano-cli.
 
-### `exec_paths.sh`
-
-paths to executable utilities
-
 ### `sign_send.sh`
 
 This script signs and submits the transaction to the chain. It takes a skey name and assumes its stored in the address folder (see demo/address)

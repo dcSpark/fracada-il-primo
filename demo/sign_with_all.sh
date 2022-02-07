@@ -1,4 +1,3 @@
-. exec_paths.sh
 
 echo "sign datum"
 ${SIGN} datum-hash.txt address/key1.skey d1.sign

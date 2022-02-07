@@ -1,5 +1,4 @@
 . config.sh
-. exec_paths.sh
 . functions.sh
 . params.sh
 
@@ -31,7 +30,7 @@ COLLATERAL_TX=$SELECTED_UTXO
 
 
 #build datum
-${BUILD_DATUM} new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
+. build-datum.sh new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
 
 # pay NFT and mint fraction tokens
 $CARDANO_CLI transaction build \

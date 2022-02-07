@@ -1,5 +1,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
+
 import           Prelude
 import           System.Environment
 
