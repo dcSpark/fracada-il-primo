@@ -21,12 +21,12 @@ flag erase-costly-newtypes
     default: False
     manual: True
 
-flag erase-debug-messages
-    description:
-        Debug messages take some space in on-chain scripts.
-        This flags removes them.
-    default: False
-    manual: True
+-- flag erase-debug-messages
+--     description:
+--         Debug messages take some space in on-chain scripts.
+--         This flags removes them.
+--     default: False
+--     manual: True
 
 library
   hs-source-dirs:      src
@@ -40,6 +40,7 @@ library
                      , plutus-ledger-api
                      , plutus-ledger-constraints
                      , plutus-tx
+                     , plutus-tx-plugin
                      , text
                      , playground-common
                      , base16-bytestring
@@ -84,6 +85,7 @@ executable           build-datum
                     , plutus-ledger
                     , plutus-ledger-api
                     , plutus-tx
+                    , plutus-tx-plugin
                     , text
                     , cardano-api
                     , base16-bytestring
@@ -125,6 +127,7 @@ executable           build-redeemer
                     , plutus-ledger
                     , plutus-ledger-api
                     , plutus-tx
+                    , plutus-tx-plugin
                     , text
                     , serialise
                     , playground-common
@@ -222,9 +225,9 @@ executable           script-dump
 
 executable           fracada-scripts
   main-is:           Main.hs
-  hs-source-dirs:    scripts, test
+  hs-source-dirs:    src, scripts, test
 
-  other-modules:     Spec.Fracada, Spec.Scenarios, Spec.EvilEndpoints, Fracada.Utils
+  other-modules:     Spec.Fracada, Spec.Scenarios, Spec.EvilEndpoints, Fracada.Utils, Fracada.Minting, Fracada.Offchain, Fracada.Validator
   ghc-options:       -Wall
                       -Wcompat
                       -Wincomplete-record-updates
@@ -242,6 +245,7 @@ executable           fracada-scripts
                     , fracada-il-primo
                     , optparse-applicative
                     , plutus-tx
+                    , plutus-tx-plugin
                     , plutus-contract
                     , plutus-ledger
                     , plutus-ledger-api
@@ -375,7 +379,6 @@ executable           sign
                     , plutus-ledger
                     , plutus-ledger-api
                     , plutus-tx
-                    , plutus-tx-plugin
                     , text
                     , serialise
                     , playground-common

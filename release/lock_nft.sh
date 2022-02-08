@@ -39,9 +39,9 @@ $CARDANO_CLI transaction build \
 --tx-in ${NFT_UTXO} \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \
---tx-out "$(cat wallets/validator.addr) + 1724100 + 1 ${NFT_ASSET}" \
---tx-out-datum-hash $(cat datum-hash.txt) \
---tx-out "${SELECTED_WALLET_ADDRESS} + 1620654 + ${INITIAL_FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
+--tx-out "$(cat wallets/validator.addr) + ${MIN_ADA} + 1 ${NFT_ASSET}" \
+--tx-out-datum-embed-file datum.json \
+--tx-out "${SELECTED_WALLET_ADDRESS} + ${MIN_ADA} + ${INITIAL_FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
 --mint "${INITIAL_FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
 --mint-script-file minting.plutus \
 --mint-redeemer-value {} \
