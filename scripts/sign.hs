@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
+
 import           Cardano.Api
 import qualified Cardano.Crypto.Wallet      as Crypto
 import qualified Data.ByteString.Base16     as B16

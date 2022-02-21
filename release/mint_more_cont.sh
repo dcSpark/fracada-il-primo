@@ -17,7 +17,6 @@ SIGNING_WALLET=$SELECTED_WALLET_NAME
 SELECTED_WALLET_ADDRESS=$(cat ./wallets/$SELECTED_WALLET_NAME.addr)
 
 . config.sh
-. exec_paths.sh
 . functions.sh
 . params.sh
 
@@ -32,7 +31,7 @@ getInputTx $SIGNING_WALLET
 COLLATERAL_TX=$SELECTED_UTXO
 
 echo "Building redeemer"
-${BUILD_REDEEMER} ${FRACT_CURRENCY} ${FRACT_TOKEN}  < signaturefiles.txt
+. build-redeemer.sh ${FRACT_CURRENCY} ${FRACT_TOKEN}  < signaturefiles.txt
 
 echo "Mint fraction tokens"
 $CARDANO_CLI transaction build \

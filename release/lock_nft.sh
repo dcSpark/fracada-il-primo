@@ -1,5 +1,4 @@
 . config.sh
-. exec_paths.sh
 . functions.sh
 . params.sh
 
@@ -31,7 +30,7 @@ COLLATERAL_TX=$SELECTED_UTXO
 
 
 #build datum
-${BUILD_DATUM} new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
+. build-datum.sh new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
 
 # pay NFT and mint fraction tokens
 $CARDANO_CLI transaction build \
@@ -40,9 +39,9 @@ $CARDANO_CLI transaction build \
 --tx-in ${NFT_UTXO} \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \
---tx-out "$(cat wallets/validator.addr) + 1724100 + 1 ${NFT_ASSET}" \
---tx-out-datum-hash $(cat datum-hash.txt) \
---tx-out "${SELECTED_WALLET_ADDRESS} + 1620654 + ${INITIAL_FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
+--tx-out "$(cat wallets/validator.addr) + ${MIN_ADA} + 1 ${NFT_ASSET}" \
+--tx-out-datum-embed-file datum.json \
+--tx-out "${SELECTED_WALLET_ADDRESS} + ${MIN_ADA} + ${INITIAL_FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
 --mint "${INITIAL_FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
 --mint-script-file minting.plutus \
 --mint-redeemer-value {} \

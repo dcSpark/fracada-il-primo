@@ -32,23 +32,17 @@ library
   hs-source-dirs:      src
   exposed-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain, Fracada.Utils
   build-depends:       aeson
-                     -- , base ^>=4.14.1.0
                      , base
-                     , bytestring
                      , containers
-                     , freer-extras
                      , plutus-core
                      , plutus-contract
                      , plutus-ledger
                      , plutus-ledger-api
                      , plutus-ledger-constraints
-                     , cardano-ledger-alonzo
-                     , cardano-api
                      , plutus-tx
                      , plutus-tx-plugin
                      , text
                      , playground-common
-                     , plutus-chain-index
                      , base16-bytestring
 
   default-language:   Haskell2010
@@ -85,21 +79,15 @@ executable           build-datum
   build-depends:     base
                     , aeson
                     , cardano-api
-                    , cardano-ledger-alonzo
                     , bytestring
                     , containers
-                    , freer-extras
                     , plutus-core
-                    , plutus-contract
                     , plutus-ledger
                     , plutus-ledger-api
                     , plutus-tx
                     , plutus-tx-plugin
                     , text
-                    , serialise
-                    , playground-common
                     , cardano-api
-                    , hex
                     , base16-bytestring
   default-language:   Haskell2010
   default-extensions: DataKinds
@@ -133,11 +121,7 @@ executable           build-redeemer
   other-modules:     Fracada.Validator, Fracada.Utils
   build-depends:     base
                     , aeson
-                    , cardano-api
-                    , cardano-ledger-alonzo
-                    , bytestring
                     , containers
-                    , freer-extras
                     , plutus-core
                     , plutus-contract
                     , plutus-ledger
@@ -149,6 +133,7 @@ executable           build-redeemer
                     , playground-common
                     , cardano-api
                     , hex
+                    , bytestring
                     , base16-bytestring
   default-language:   Haskell2010
   default-extensions: DataKinds
@@ -194,10 +179,10 @@ executable           script-dump
                     , cardano-crypto
                     , bytestring
                     , containers
-                    , freer-extras
                     , plutus-core
                     , plutus-contract
                     , plutus-ledger
+                    , plutus-ledger-constraints
                     , plutus-ledger-api
                     , plutus-tx
                     , plutus-tx-plugin
@@ -240,9 +225,9 @@ executable           script-dump
 
 executable           fracada-scripts
   main-is:           Main.hs
-  hs-source-dirs:    scripts, test
+  hs-source-dirs:    src, scripts, test
 
-  other-modules:     Spec.Fracada, Spec.Scenarios, Spec.EvilEndpoints, Fracada.Utils
+  other-modules:     Spec.Fracada, Spec.Scenarios, Spec.EvilEndpoints, Fracada.Utils, Fracada.Minting, Fracada.Offchain, Fracada.Validator
   ghc-options:       -Wall
                       -Wcompat
                       -Wincomplete-record-updates
@@ -270,7 +255,6 @@ executable           fracada-scripts
                     , cardano-crypto-class
                     , containers
                     , data-default
-                    , freer-extras
                     , prettyprinter
                     , tasty
                     , tasty-hunit
@@ -319,7 +303,6 @@ test-suite          fracada-test
                     , cardano-api
                     , cardano-crypto
                     , cardano-crypto-class
-                    , cardano-ledger-alonzo
                     , bytestring
                     , containers
                     , freer-extras
@@ -389,16 +372,13 @@ executable           sign
   build-depends:     base
                     , aeson
                     , cardano-api
-                    , cardano-ledger-alonzo
                     , bytestring
                     , containers
-                    , freer-extras
                     , plutus-core
                     , plutus-contract
                     , plutus-ledger
                     , plutus-ledger-api
                     , plutus-tx
-                    , plutus-tx-plugin
                     , text
                     , serialise
                     , playground-common

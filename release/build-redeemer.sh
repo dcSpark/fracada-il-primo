@@ -1,0 +1,1 @@
+cabal run build-redeemer -- $@

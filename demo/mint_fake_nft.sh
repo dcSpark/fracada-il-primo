@@ -1,5 +1,4 @@
 . config.sh
-. exec_paths.sh
 . functions.sh
 . params.sh
 

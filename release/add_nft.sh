@@ -14,12 +14,12 @@ else
   NEW_NFT_TOKEN=$2
 fi
 
-. exec_paths.sh
 . params.sh
 
 echo "build datum"
+touch datum.json 
 mv datum.json current-datum.json
-${BUILD_DATUM} add-nft current-datum.json ${NEW_NFT_CURRENCY} ${NEW_NFT_TOKEN}
+. build-datum.sh add-nft current-datum.json ${NEW_NFT_CURRENCY} ${NEW_NFT_TOKEN}
 
 
 echo "add_nft_cont.sh ${NEW_NFT_CURRENCY} ${NEW_NFT_TOKEN} $1" > continue_add_nft_${NEW_NFT_CURRENCY}_${NEW_NFT_TOKEN}.sh
