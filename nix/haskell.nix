@@ -11,7 +11,7 @@ let inherit (plutus-apps) pkgs;
 in
 pkgs.haskell-nix.cabalProject rec {
   src = pkgs.haskell-nix.haskellLib.cleanGit {
-    name = "wingriders";
+    name = "fracada-il-primo";
     src = ./..;
   };
 
@@ -34,10 +34,6 @@ pkgs.haskell-nix.cabalProject rec {
 
       plutus-ledger.doHaddock = deferPluginErrors;
       plutus-ledger.flags.defer-plugin-errors = deferPluginErrors;
-
-      # This allows us to generate .tix coverage files, which could be useful?
-      wingriders.components.library.doCoverage = doCoverage;
-      wingriders.flags.typed-raw-data = typedRawData;
     };
   }];
 
