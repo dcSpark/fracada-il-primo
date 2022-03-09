@@ -1,3 +1,6 @@
+# LOAD CARDANO VARIABLES
+. ./config.sh
+
 # generate addresses
 # main address
 $CARDANO_CLI address key-gen \
