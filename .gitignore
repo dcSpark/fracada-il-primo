@@ -2,3 +2,4 @@ dist-newstyle
 demo/address
 demo/wallets
 demo/plutus
+cabal.project.local
