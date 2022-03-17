@@ -33,20 +33,19 @@ COLLATERAL_TX=$SELECTED_UTXO
 . build-datum.sh new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
 
 # pay NFT and mint fraction tokens
+
 $CARDANO_CLI transaction build \
---alonzo-era \
 --$NETWORK_SELECTION \
 --tx-in ${NFT_UTXO} \
---tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \
 --tx-out "$(cat wallets/validator.addr) + ${MIN_ADA} + 1 ${NFT_ASSET}" \
 --tx-out-datum-embed-file datum.json \
 --tx-out "${SELECTED_WALLET_ADDRESS} + ${MIN_ADA} + ${INITIAL_FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
 --mint "${INITIAL_FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
---mint-script-file minting.plutus \
+--minting-script-file ./plutus/minting.plutus \
 --mint-redeemer-value {} \
 --change-address ${SELECTED_WALLET_ADDRESS} \
 --protocol-params-file pparams.json \
 --out-file tx.raw
 
-. sign_send.sh $SIGNING_WALLET
+# . sign_send.sh $SIGNING_WALLET
