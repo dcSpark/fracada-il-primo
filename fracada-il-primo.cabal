@@ -70,6 +70,7 @@ library
                  -Wincomplete-uni-patterns -Wincomplete-record-updates
                  -Wredundant-constraints -Widentities
                  -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+                 -fplugin-opt PlutusTx.Plugin:defer-errors
 
 
 executable           build-datum
@@ -114,6 +115,7 @@ executable           build-datum
                  -Wincomplete-uni-patterns -Wincomplete-record-updates
                  -Wredundant-constraints -Widentities
                  -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+                 -fplugin-opt PlutusTx.Plugin:defer-errors
 
 executable           build-redeemer
   main-is:           build-redeemer.hs
@@ -166,6 +168,7 @@ executable           build-redeemer
                       -fobject-code
                       -fno-ignore-interface-pragmas
                       -fno-omit-interface-pragmas
+                      -fplugin-opt PlutusTx.Plugin:defer-errors
 
 executable           script-dump
   main-is:           script-dump.hs
@@ -221,6 +224,7 @@ executable           script-dump
                       -fobject-code
                       -fno-ignore-interface-pragmas
                       -fno-omit-interface-pragmas
+                      -fplugin-opt PlutusTx.Plugin:defer-errors
 
 
 executable           fracada-scripts
@@ -238,6 +242,7 @@ executable           fracada-scripts
                       -fobject-code
                       -fno-ignore-interface-pragmas
                       -fno-omit-interface-pragmas
+                      -fplugin-opt PlutusTx.Plugin:defer-errors
 
   build-depends:     base
                     , aeson
@@ -360,6 +365,7 @@ test-suite          fracada-test
                       -fobject-code
                       -fno-ignore-interface-pragmas
                       -fno-omit-interface-pragmas
+                      -fplugin-opt PlutusTx.Plugin:defer-errors
 
   if !(impl(ghcjs) || os(ghcjs))
     build-depends: plutus-tx-plugin -any
@@ -420,3 +426,4 @@ executable           sign
                       -fno-ignore-interface-pragmas
                       -fno-omit-interface-pragmas
                       -Wincomplete-uni-patterns
+                      -fplugin-opt PlutusTx.Plugin:defer-errors

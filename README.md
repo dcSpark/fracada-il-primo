@@ -19,49 +19,59 @@ The protocol has three steps:
 2. Mint tokens: Fraction tokens are minted (must be run by the same person who performed step 1).
 3. Return the NFT: Burning all the fraction tokens will allow the user to redeem the NFT back.
 
-## Testing On Plutus Playground
-
-The `Fracada.hs` content can be pasted on the Plutus Playground and executed directly in the simulator ( tested and compiled against Plutus release tag `plutus-pab/v0.0.2` ).
-
 ## Building
 
 To build the project execute `cabal build` at the project root.
-(NOTE: To build, the easiest way is for now, to clone [Plutus](https://github.com/input-output-hk/plutus) do `nix-shell` on the root of it and then `cd` to this repo)
 
 To build:
+
 ``` bash
-$ cabal configure --enable-tests --enable-executable-dynamic -f -external-libsodium-vrf
+$ nix-shell
+...
 $ cabal build
+...
 ```
 
 ## Testing
 
 To run use-case test execute the following commands at the project root.
+
 ``` bash
-$ cabal run -- fracada-test # or cabal test
-Up to date
+$ nix-shell
+$ cabal test
+cabal test
+Build profile: -w ghc-8.10.4.20210212 -O1
+In order, the following will be built (use -v for more details):
+ - fracada-il-primo-0.1.0.0 (test:fracada-test) (ephemeral targets)
+Preprocessing test suite 'fracada-test' for fracada-il-primo-0.1.0.0..
+Building test suite 'fracada-test' for fracada-il-primo-0.1.0.0..
+Running 1 test suites...
+Test suite fracada-test: RUNNING...
 use cases
   fracada
-    Expose '1-fractionNFT' and '2-returnNFT' endpoints: OK (0.12s)
-    Can lock NFT and mint fractionalize tokens:         OK
+    Expose endpoints:                                                                                             OK (0.01s)
+    Can lock NFT, mint fractional tokens, and exchange the NFT back when burning the tokens:                      OK (0.22s)
+    Full scenario (lock NFT with minting, add more NFTs, mint more tokens, return all NFTs in exchange of tokens: OK (0.43s)
+    No new NFTs (lock NFT with minting, mint more tokens, return all NFTs in exchange of tokens:                  OK (0.28s)
+    Full scenario (lock NFT with minting, mint more tokens, add more NFTs, return all NFTs in exchange of tokens: OK (0.44s)
+    Can't return the nft if fractional tokens aren't burned:                                                      OK (0.13s)
+    Can't return the nft if not all fractional tokens aren't burned:                                              OK (0.13s)
+    Can't mint fractional tokens:                                                                                 OK (0.12s)
+    Can't add unsigned nft:                                                                                       OK (0.12s)
+    Can't mint unsigned tokens:                                                                                   OK (0.15s)
+    Can't add more than one token:                                                                                OK (0.14s)
+    Can't steal NFTs when minting:                                                                                OK (0.20s)
+    Can't mint extraneous tokens:                                                                                 OK (0.15s)
+    Can't add the same NFT:                                                                                       OK (0.17s)
+    datum not updated adding NFTs:                                                                                OK (0.11s)
+    Must return all NFTs:                                                                                         OK (0.21s)
+    Can't mint different than declared:                                                                           OK (0.05s)
+    Can't mint if not locked:                                                                                     OK (0.05s)
+    Can't burn if NFTs not returned:                                                                              OK (0.14s)
 
-All 2 tests passed (0.14s)
+All 19 tests passed (3.27s)
+Test suite fracada-test: PASS
+1 of 1 test suites (1 of 1 test cases) passed.
 ```
 
-## Dumping Transactions
-
-Dumping transaction for debug purpose ran the following command at the project root:
-
-``` bash
-$ cabal run fracada-scripts --  ./tmp transactions -p scripts/protocol-parameters.json
-...
-Writing transactions to: ./tmp
-Writing partial transaction JSON: ./tmp/fracada-success-1.json
-```
-
-## Deployable Scripts
-
-To generate the scripts to deploy on-chain simply run:
-`cabal run script-dump <NFT currency symbol> <NFT token name> <Fraction token name> <number of fractions>`
-
-This will create `validator.plutus` and `minting.plutus` with the cbor dump of the scripts ready to be submitted in a transaction.
+## User Scripts
