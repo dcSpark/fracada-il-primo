@@ -6,7 +6,7 @@ mkdir -p plutus
 . ./init-keys.sh
 
 # LOAD CARDANO VARIABLES
-. ./demo_config.sh
+. ./demo_params.sh
 
 # INIT PLUTUS
 . init_validator.sh

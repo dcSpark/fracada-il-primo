@@ -1,4 +1,4 @@
-. ./demo_config.sh
+. ./demo_params.sh
 
 echo "sign datum"
 . sign.sh datum-hash.txt wallets/key1.skey d1.sign

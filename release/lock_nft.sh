@@ -33,7 +33,6 @@ COLLATERAL_TX=$SELECTED_UTXO
 . build-datum.sh new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
 
 # pay NFT and mint fraction tokens
-
 $CARDANO_CLI transaction build \
 --$NETWORK_SELECTION \
 --tx-in ${NFT_UTXO} \
@@ -48,4 +47,4 @@ $CARDANO_CLI transaction build \
 --protocol-params-file pparams.json \
 --out-file tx.raw
 
-# . sign_send.sh $SIGNING_WALLET
+. sign_send.sh $SIGNING_WALLET

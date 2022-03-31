@@ -36,18 +36,17 @@ COLLATERAL_TX=$SELECTED_UTXO
 
 echo "pay NFT back and burn fraction tokens"
 $CARDANO_CLI transaction build \
---alonzo-era \
 --$NETWORK_SELECTION \
 --tx-in ${FRACTIONS_UTXO} \
 --tx-in ${NFT_UTXO} \
---tx-in-script-file validator.plutus \
+--tx-in-script-file ./plutus/validator.plutus \
 --tx-in-datum-file datum.json \
---tx-in-redeemer-file empty-redeemer.json \
+--tx-in-redeemer-file ../release/empty-redeemer.json \
 --tx-in ${COLLATERAL_TX} \
 --tx-in-collateral ${COLLATERAL_TX} \
---tx-out "${SELECTED_WALLET_ADDRESS} + ${MIN_ADA} + 1 ${NFT_ASSET}" \
+--tx-out "${SELECTED_WALLET_ADDRESS} + 2000000 + ${NFT_UTXO_TOKENS}" \
 --mint "-${FRACT_TOKENS_AMOUNT} ${FRACT_ASSET}" \
---mint-script-file minting.plutus \
+--mint-script-file ./plutus/minting.plutus \
 --mint-redeemer-value {} \
 --change-address ${SELECTED_WALLET_ADDRESS} \
 --protocol-params-file pparams.json \
