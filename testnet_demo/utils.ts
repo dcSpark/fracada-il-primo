@@ -441,44 +441,63 @@ export const generatePaymentKeys = async (outDir: string, networkId: number) => 
   fs.writeFileSync(`${outDir}/keys/payment.script`, JSON.stringify(script));
 }
 
-export const getUtxoByPaymentKey = (outDir: string, keyName: string, networkId: number) => {
-  return new Promise<Utxo[]>(async (resolve, reject) => {
-    try {
-      // Query Raw UTXO from CLI
-      const paymentAddr = await getWalletAddress(outDir, keyName);
-      const result = await execa('cardano-cli', [
-        'query',
-        'utxo',
-        '--address',
-        paymentAddr,
-        ...networkFlagByNetworkId(networkId).split(' ')
-      ]);
+export const getUtxoByPaymentKey = async (outDir: string, keyName: string, networkId: number) => {
+  // Query Raw UTXO from CLI
+  const paymentAddr = await getWalletAddress(outDir, keyName);
+  const result = await execa('cardano-cli', [
+    'query',
+    'utxo',
+    '--address',
+    paymentAddr,
+    ...networkFlagByNetworkId(networkId).split(' ')
+  ]);
 
-      // Prase Utxo into Utxo[] object
-      resolve(result.stdout.split('\n').map((line, idx) => {
-        if (idx > 1) {
-          const lineSplit = line.split(' ');
-          const amountString = lineSplit.slice(13).join(' ');
-          return {
-            txId: lineSplit[0],
-            txIndex: parseInt(lineSplit[5]),
-            amount: amountString.split('+').map((amount) => {
-              const sanitizedAmountSplit = amount.trim().split(' ');
-              if (!amount.includes('TxOutDatumNone')) {
-                return {
-                  unit: sanitizedAmountSplit[1].replace('.', ''),
-                  quantity: parseInt(sanitizedAmountSplit[0])
-                } as Amount;
-              }
-            }).filter(x => x) as Amount[]
-          } as Utxo;
-        }
-      }).filter(x => x) as Utxo[]);
+  // Prase Utxo into Utxo[] object
+  return parseRawUtxo(result.stdout);
+}
 
-    } catch (ex) {
-      reject(ex);
+export const getValidatorUtxos = async (validatorAddr: string, networkId: number) => {
+  const result = await execa('cardano-cli', [
+    'query',
+    'utxo',
+    '--address',
+    validatorAddr,
+    ...networkFlagByNetworkId(networkId).split(' ')
+  ]);
+  return parseRawUtxo(result.stdout);
+}
+
+export const parseRawUtxo = (rawUtxo: string) => {
+  return rawUtxo.split('\n').map((line, idx) => {
+    if (idx > 1) {
+      const lineSplit = line.split(' ');
+      const amountString = lineSplit.slice(13).join(' ');
+      return {
+        txId: lineSplit[0],
+        txIndex: parseInt(lineSplit[5]),
+        amount: amountString.split('+').map((amount) => {
+          const sanitizedAmountSplit = amount.trim().split(' ');
+          if (!amount.includes('TxOutDatum')) {
+            return {
+              unit: sanitizedAmountSplit[1].replace('.', ''),
+              quantity: parseInt(sanitizedAmountSplit[0])
+            } as Amount;
+          }
+        }).filter(x => x) as Amount[]
+      } as Utxo;
     }
-  });
+  }).filter(x => x) as Utxo[]
+}
+
+export const getValidatorAddress = async (outDir: string, networkId: number) => {
+  const result = await execa('cardano-cli', [
+    'address',
+    'build',
+    '--payment-script-file',
+    `${outDir}/validator.plutus`,
+    ...networkFlagByNetworkId(networkId).split(' ')
+  ]);
+  return result.stdout;
 }
 
 export const getWalletAddress = async (outDir: string, keyName: string) => {
@@ -571,20 +590,6 @@ export const bootstrapWallet = async (outDir: string, networkId: number) => {
   }
 }
 
-export const getValidatorAddress = async (outDir: string, networkId: number) => {
-  try {
-    const result = await execa('cardano-cli', [
-      'address',
-      'build',
-      '--payment-script-file',
-      `${outDir}/validator.plutus`,
-      ...networkFlagByNetworkId(networkId).split(' ')
-    ]);
-    return result.stdout
-  } catch (ex) {
-    console.log(ex);
-  }
-}
 
 export const generateProtocolParams = async (outDir: string, networkId: number) => {
   try {
@@ -688,11 +693,69 @@ export const lockNft = async (outDir: string, networkId: number) => {
   }
 }
 
+
+export const unlockNft = async (outDir: string, networkId: number) => {
+  const paymentAddr = await getWalletAddress(outDir, 'payment');
+  const validatorAddr = await getValidatorAddress(outDir, networkId);
+  const validatorUtxos = await getValidatorUtxos(validatorAddr, networkId);
+  const paymentUtxos = await getUtxoByPaymentKey(outDir, 'payment', networkId);
+  const collateralUtxo = getCollateralUtxo(paymentUtxos) as Utxo;
+  const fractionUtxo = getFractionNftUtxo(paymentUtxos) as Utxo;
+  const nftUnit = validatorUtxos[0].amount.find(a => a.unit !== 'lovelace')?.unit;
+  const fractionAmount = fractionUtxo.amount.find(a => a.unit !== 'lovelace') as Amount;
+
+  // build tx
+  await execa('cardano-cli', [
+    'transaction', 'build',
+    '--tx-in', `${fractionUtxo.txId}#${fractionUtxo.txIndex}`,
+    '--tx-in', `${validatorUtxos[0].txId}#${validatorUtxos[0].txIndex}`,
+    '--tx-in-script-file', `${outDir}/validator.plutus`,
+    '--tx-in-datum-file', `${outDir}/datum.json`,
+    '--tx-in-redeemer-file', `empty-redeemer.json`,
+    '--tx-in-collateral', `${collateralUtxo.txId}#${collateralUtxo.txIndex}`,
+    '--tx-out', `${paymentAddr}+2000000+1 ${nftUnit?.substring(0, 56)}.${nftUnit?.substring(56)}`,
+    '--mint', `-${fractionAmount.quantity} ${fractionAmount.unit.substring(0, 56)}.${fractionAmount.unit.substring(56)}`,
+    '--mint-script-file', `${outDir}/minting.plutus`,
+    '--mint-redeemer-value', '{}',
+    '--change-address', paymentAddr,
+    '--protocol-params-file', `${outDir}/protocol-params.json`,
+    ...networkFlagByNetworkId(networkId).split(' '),
+    '--out-file', `${outDir}/tx.raw`
+  ]);
+
+  await execa('cardano-cli', [
+    'transaction', 'sign',
+    ...networkFlagByNetworkId(networkId).split(' '),
+    '--tx-body-file', `${outDir}/tx.raw`,
+    '--signing-key-file', `${outDir}/keys/payment.skey`,
+    '--out-file', `${outDir}/tx.signed`
+  ]);
+
+  await execa('cardano-cli', [
+    'transaction', 'submit',
+    ...networkFlagByNetworkId(networkId).split(' '),
+    '--tx-file', `${outDir}/tx.signed`,
+  ]);
+
+  const result = await execa('cardano-cli', [
+    'transaction', 'txid',
+    '--tx-file', `${outDir}/tx.signed`
+  ]);
+
+  return result.stdout;
+}
+
 export const getCollateralUtxo = (utxos: Utxo[]) => {
   return utxos.find(
     utxo => utxo.amount.length === 1 &&
       (utxo.amount[0].quantity === 5_000_000) &&
       utxo.amount.find(a => a.unit === 'lovelace') !== undefined);
+}
+
+export const getFractionNftUtxo = (utxos: Utxo[]) => {
+  return utxos.find(
+    utxo => utxo.amount.find(a => a.unit.includes('4e66744672616374696f6e73')) !== undefined
+  );
 }
 
 export const waitForTxConf = async (txId: string, networkId: number) => {

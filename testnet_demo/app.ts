@@ -11,6 +11,8 @@ import {
   getBalanceValueFromCliUtxos,
   getPolicyIdByScript as getPolicyIdByKey,
   getUtxoByPaymentKey,
+  getValidatorAddress,
+  getValidatorUtxos,
   getWalletAddress as getWalletAddressByKey,
   initializeValidatorScript,
   isPaymentKeysExist,
@@ -18,12 +20,14 @@ import {
   lockNft,
   sleep,
   stringFormatBalance,
+  unlockNft,
   Utxo,
   waitForTxConf
 } from './utils';
 import { createLogger, transports, format } from 'winston';
 
 const Main = async () => {
+  const validatorAddr = await getValidatorAddress(config.OUT_DIR, config.NETWORK_ID);
 
   logger.info("Welcome to Fracada Testnet Deployment Script");
 
@@ -32,6 +36,7 @@ const Main = async () => {
     await generatePaymentKeys(config.OUT_DIR, config.NETWORK_ID);
   }
 
+  logger.info(`Contract Address: ${validatorAddr}`);
   logger.info(`Payment Address: ${await getWalletAddressByKey(config.OUT_DIR, 'payment')}`);
   const fakeNftPolicyId = await getPolicyIdByKey(config.OUT_DIR, 'payment');
   logger.info(`Fake NFT PolicyId: ${fakeNftPolicyId}`);
@@ -56,7 +61,7 @@ const Main = async () => {
     } else break;
   }
 
-  logger.info(`\n[Initial Wallet Balance] \n${stringFormatBalance(balance)}`);
+  logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
 
   // Bootstrap Wallet
   logger.info('Bootrapping wallet for Fracada end to end test...');
@@ -70,7 +75,7 @@ const Main = async () => {
 
   utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
   balance = getBalanceValueFromCliUtxos(utxos);
-  logger.info(`\n[Bootstrap Wallet Balance] \n${stringFormatBalance(balance)}`);
+  logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
 
   logger.info('Fractionalizing FakeNft_A...');
   const lockTxId = await lockNft(config.OUT_DIR, config.NETWORK_ID);
@@ -84,7 +89,23 @@ const Main = async () => {
 
   utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
   balance = getBalanceValueFromCliUtxos(utxos);
-  logger.info(`\n[Wallet Balance after fractionalization] \n${stringFormatBalance(balance)}`);
+  logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
+
+  logger.info('Unlocking FakeNFT_A...');
+  const unlockTxId = await unlockNft(config.OUT_DIR, config.NETWORK_ID);
+
+  if (unlockTxId !== undefined) {
+    logger.info(`Unlock txId: ${unlockTxId}`);
+    logger.info(`Waiting for confirmation...`);
+    await waitForTxConf(unlockTxId, config.NETWORK_ID);
+  }
+
+  logger.info('Unlocking Complete!');
+
+  utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
+  balance = getBalanceValueFromCliUtxos(utxos);
+  logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
+
 }
 
 const logger = createLogger({
