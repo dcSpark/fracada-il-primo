@@ -6,6 +6,7 @@
 
 import { config } from './config';
 import {
+  addNft,
   bootstrapWallet,
   generatePaymentKeys,
   getBalanceValueFromCliUtxos,
@@ -90,8 +91,21 @@ const Main = async () => {
   utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
   balance = getBalanceValueFromCliUtxos(utxos);
   logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
+  logger.info('Adding FakeNft_B to the contract...');
+  const addNftTxId = await addNft(config.OUT_DIR, config.NETWORK_ID);
+  if (addNftTxId !== undefined) {
+    logger.info(`AddNft txId: ${addNftTxId}`);
+    logger.info(`Waiting for confirmation...`);
+    await waitForTxConf(addNftTxId, config.NETWORK_ID);
+  }
 
-  logger.info('Unlocking FakeNFT_A...');
+  logger.info('FakeNft_B added to the contract!');
+
+  utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
+  balance = getBalanceValueFromCliUtxos(utxos);
+  logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
+
+  logger.info('Unlocking FakeNFTs...');
   const unlockTxId = await unlockNft(config.OUT_DIR, config.NETWORK_ID);
 
   if (unlockTxId !== undefined) {

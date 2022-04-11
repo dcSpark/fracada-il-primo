@@ -21,13 +21,10 @@ import {
   ScriptPubkey,
   StakeCredential,
   TransactionBuilder,
-  TransactionBuilderConfig,
   TransactionBuilderConfigBuilder,
   TransactionHash,
   TransactionInput,
-  TransactionInputs,
   TransactionOutput,
-  TransactionOutputs,
   TransactionUnspentOutput,
   TransactionUnspentOutputs,
   Value
@@ -695,25 +692,27 @@ export const lockNft = async (outDir: string, networkId: number) => {
 
 
 export const unlockNft = async (outDir: string, networkId: number) => {
+  const bootstrapId = fs.readFileSync(`${outDir}/bootstrap_id`).toString();
+  const policyId = await getPolicyIdByScript(outDir, 'payment');
   const paymentAddr = await getWalletAddress(outDir, 'payment');
   const validatorAddr = await getValidatorAddress(outDir, networkId);
   const validatorUtxos = await getValidatorUtxos(validatorAddr, networkId);
   const paymentUtxos = await getUtxoByPaymentKey(outDir, 'payment', networkId);
+  const nftUtxo = getFakeNftABUtxo(validatorUtxos, bootstrapId) as Utxo;
   const collateralUtxo = getCollateralUtxo(paymentUtxos) as Utxo;
   const fractionUtxo = getFractionNftUtxo(paymentUtxos) as Utxo;
-  const nftUnit = validatorUtxos[0].amount.find(a => a.unit !== 'lovelace')?.unit;
   const fractionAmount = fractionUtxo.amount.find(a => a.unit !== 'lovelace') as Amount;
 
   // build tx
   await execa('cardano-cli', [
     'transaction', 'build',
     '--tx-in', `${fractionUtxo.txId}#${fractionUtxo.txIndex}`,
-    '--tx-in', `${validatorUtxos[0].txId}#${validatorUtxos[0].txIndex}`,
+    '--tx-in', `${nftUtxo.txId}#${nftUtxo.txIndex}`,
     '--tx-in-script-file', `${outDir}/validator.plutus`,
     '--tx-in-datum-file', `${outDir}/datum.json`,
     '--tx-in-redeemer-file', `empty-redeemer.json`,
     '--tx-in-collateral', `${collateralUtxo.txId}#${collateralUtxo.txIndex}`,
-    '--tx-out', `${paymentAddr}+2000000+1 ${nftUnit?.substring(0, 56)}.${nftUnit?.substring(56)}`,
+    '--tx-out', `${paymentAddr}+2000000+1 ${policyId}.${asciiToHex(`FakeNft_A_${bootstrapId}`)}+1 ${policyId}.${asciiToHex(`FakeNft_B_${bootstrapId}`)}`,
     '--mint', `-${fractionAmount.quantity} ${fractionAmount.unit.substring(0, 56)}.${fractionAmount.unit.substring(56)}`,
     '--mint-script-file', `${outDir}/minting.plutus`,
     '--mint-redeemer-value', '{}',
@@ -745,6 +744,87 @@ export const unlockNft = async (outDir: string, networkId: number) => {
   return result.stdout;
 }
 
+export const addNft = async (outDir: string, networkId: number) => {
+  const policyId = await getPolicyIdByScript(outDir, 'payment');
+  const bootstrapId = fs.readFileSync(`${outDir}/bootstrap_id`).toString();
+  const paymentAddr = await getWalletAddress(outDir, 'payment');
+  const validatorAddr = await getValidatorAddress(outDir, networkId);
+  const paymentUtxos = await getUtxoByPaymentKey(outDir, 'payment', networkId);
+  const validatorUtxos = await getValidatorUtxos(validatorAddr, networkId);
+  const fakeNftAUtxo = getFakeNftAUtxo(validatorUtxos, bootstrapId) as Utxo;
+  const fakeNftBUtxo = getFakeNftBUtxo(paymentUtxos, bootstrapId) as Utxo;
+  const fakeNftAUtxoAmount = fakeNftAUtxo.amount.find(a => a.unit !== 'lovelace') as Amount;
+  const fakeNftBUtxoAmount = fakeNftBUtxo.amount.find(a => a.unit !== 'lovelace') as Amount;
+  const collateralUtxo = getCollateralUtxo(paymentUtxos) as Utxo;
+
+  fs.copyFileSync(`${outDir}/datum.json`, `${outDir}/current-datum.json`);
+
+  await execa('cabal', [
+    'run', 'build-datum', '--', 'add-nft',
+    `current-datum.json`, policyId, `FakeNft_B_${bootstrapId}`
+  ], { cwd: outDir });
+
+  await signDatum(outDir, 1);
+  await signDatum(outDir, 2);
+  await signDatum(outDir, 3);
+
+  const buildRedeemer = execa('cabal', [
+    'run', 'build-redeemer', '--',
+    `${policyId}`, `FakeNft_B_${bootstrapId}`,
+  ], { cwd: outDir });
+
+  buildRedeemer.stdin?.write("d1.sign\nd2.sign\nd3.sign\n");
+  buildRedeemer.stdin?.end();
+
+  await buildRedeemer;
+
+  await execa('cardano-cli', [
+    'transaction', 'build',
+    ...networkFlagByNetworkId(networkId).split(' '),
+    '--tx-in', `${fakeNftAUtxo.txId}#${fakeNftAUtxo.txIndex}`,
+    '--tx-in-script-file', `${outDir}/validator.plutus`,
+    '--tx-in-datum-file', `${outDir}/current-datum.json`,
+    '--tx-in-redeemer-file', `${outDir}/redeemer.json`,
+    '--tx-in-collateral', `${collateralUtxo.txId}#${collateralUtxo.txIndex}`,
+    '--tx-in', `${fakeNftBUtxo.txId}#${fakeNftBUtxo.txIndex}`,
+    '--tx-out', `${validatorAddr}+2000000+1 ${fakeNftAUtxoAmount.unit.substring(0, 56)}.${fakeNftAUtxoAmount.unit.substring(56)}+1 ${fakeNftBUtxoAmount.unit.substring(0, 56)}.${fakeNftBUtxoAmount.unit.substring(56)}`,
+    '--tx-out-datum-embed-file', `${outDir}/datum.json`,
+    '--change-address', paymentAddr,
+    '--protocol-params-file', `${outDir}/protocol-params.json`,
+    '--out-file', `${outDir}/tx.raw`
+  ]);
+
+  await execa('cardano-cli', [
+    'transaction', 'sign',
+    ...networkFlagByNetworkId(networkId).split(' '),
+    '--tx-body-file', `${outDir}/tx.raw`,
+    '--signing-key-file', `${outDir}/keys/payment.skey`,
+    '--out-file', `${outDir}/tx.signed`
+  ]);
+
+  await execa('cardano-cli', [
+    'transaction', 'submit',
+    ...networkFlagByNetworkId(networkId).split(' '),
+    '--tx-file', `${outDir}/tx.signed`,
+  ]);
+
+  const result = await execa('cardano-cli', [
+    'transaction', 'txid',
+    '--tx-file', `${outDir}/tx.signed`
+  ]);
+
+  return result.stdout;
+}
+
+export const signDatum = async (outDir: string, signer: number) => {
+  const sign = execa('cabal', [
+    'run', 'sign', '--', 'datum-hash.txt', `keys/signer_${signer}.skey`, `d${signer}.sign`
+  ], { cwd: outDir });
+  sign.stdin?.write('\n');
+  sign.stdin?.end();
+  await sign;
+}
+
 export const getCollateralUtxo = (utxos: Utxo[]) => {
   return utxos.find(
     utxo => utxo.amount.length === 1 &&
@@ -755,6 +835,26 @@ export const getCollateralUtxo = (utxos: Utxo[]) => {
 export const getFractionNftUtxo = (utxos: Utxo[]) => {
   return utxos.find(
     utxo => utxo.amount.find(a => a.unit.includes('4e66744672616374696f6e73')) !== undefined
+  );
+}
+
+export const getFakeNftAUtxo = (utxos: Utxo[], bootstrapId: string) => {
+  return utxos.find(
+    utxo => utxo.amount.length === 2 && utxo.amount.find(a => a.unit.includes(asciiToHex(`FakeNft_A_${bootstrapId}`))) !== undefined
+  );
+}
+
+export const getFakeNftBUtxo = (utxos: Utxo[], bootstrapId: string) => {
+  return utxos.find(
+    utxo => utxo.amount.length === 2 && utxo.amount.find(a => a.unit.includes(asciiToHex(`FakeNft_B_${bootstrapId}`))) !== undefined
+  );
+}
+
+export const getFakeNftABUtxo = (utxos: Utxo[], bootstrapId: string) => {
+  return utxos.find(
+    utxo =>
+      utxo.amount.find(a => a.unit.includes(asciiToHex(`FakeNft_A_${bootstrapId}`))) !== undefined &&
+      utxo.amount.find(a => a.unit.includes(asciiToHex(`FakeNft_B_${bootstrapId}`))) !== undefined
   );
 }
 
