@@ -28,7 +28,6 @@ import {
 import { createLogger, transports, format } from 'winston';
 
 const Main = async () => {
-  const validatorAddr = await getValidatorAddress(config.OUT_DIR, config.NETWORK_ID);
 
   logger.info("Welcome to Fracada Testnet Deployment Script");
 
@@ -37,7 +36,6 @@ const Main = async () => {
     await generatePaymentKeys(config.OUT_DIR, config.NETWORK_ID);
   }
 
-  logger.info(`Contract Address: ${validatorAddr}`);
   logger.info(`Payment Address: ${await getWalletAddressByKey(config.OUT_DIR, 'payment')}`);
   const fakeNftPolicyId = await getPolicyIdByKey(config.OUT_DIR, 'payment');
   logger.info(`Fake NFT PolicyId: ${fakeNftPolicyId}`);
@@ -48,6 +46,9 @@ const Main = async () => {
     await initializeValidatorScript(fakeNftPolicyId, config.OUT_DIR, config.MIN_SIG);
     logger.info('Plutus Script Initialized!');
   }
+  
+  const validatorAddr = await getValidatorAddress(config.OUT_DIR, config.NETWORK_ID);
+  logger.info(`Contract Address: ${validatorAddr}`);
 
   // Display Balance
   let utxos = [] as Utxo[];
