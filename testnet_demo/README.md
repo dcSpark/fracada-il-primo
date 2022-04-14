@@ -17,7 +17,7 @@ Simply run `npm install` and `npm start` after entering the directory `fracada-i
 
 ## How it works
 
-- When you first run the script it will detect that you have not yet generated the compiled **Fracada** plutus script. The script will then parameterize it for you and compile it.
+- When you first run the script it will detect that you have not yet generated the compiled **Fracada** plutus script. The script will then parameterize and compile it for you.
 - It will then generate a new wallet for you. This wallet will be used to send transactions to the **Fracada** smart contract. The wallet must contain atleast `50 ADA` or `50,000,000 lovelace` so you will have to **top up** the wallet with some ADA to continue.
 
 ```bash
