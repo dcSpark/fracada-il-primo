@@ -5,7 +5,7 @@
 
 ## Requirements
 
-This script tries to as much as possible simplify testing the Fracada smart contract. But you will still need to have a few things setup in your system to be able to test it. The following are the requirements:
+This script tries to simplify testing of the Fracada smart contract. But you will still need to have a few things setup in your system to be able to test it. The following are the requirements:
 
 - `nix-shell` to be able to build the **Fracada** plutus code.
 - `cardano-node` and `cardano-cli` added to your `$PATH` environment variable. Your node must be fully synced to the **Cardano Testnet** before you can run this script.
