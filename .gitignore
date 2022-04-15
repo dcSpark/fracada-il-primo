@@ -1,0 +1,12 @@
+dist-newstyle
+demo/address
+demo/wallets
+demo/plutus
+cabal.project.local
+tx.*
+demo/continue_add_nft_*.sh
+demo/current-datum.json
+demo/datum-hash.txt
+demo/d*.sign
+testnet_demo/node_modules
+testnet_demo/dist

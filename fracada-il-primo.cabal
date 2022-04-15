@@ -394,6 +394,7 @@ executable           sign
                     , cardano-crypto
                     , cardano-crypto-class
                     , memory
+                    , plutus-tx-plugin
   default-language:   Haskell2010
   default-extensions: DataKinds
                       DeriveAnyClass

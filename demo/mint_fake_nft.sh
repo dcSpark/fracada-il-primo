@@ -11,28 +11,20 @@ else
 fi
 
 section "Select payment UTxO"
-getInputTx payment2
+getInputTx payment
 PAYMENT_UTXO=$SELECTED_UTXO
-
-section "Select Collateral UTxO"
-getInputTx payment2
-COLLATERAL_TX=$SELECTED_UTXO
-
 
 NEW_NFT_TOKEN_HEX=$(echo -n $TOKEN_NAME | xxd -p)
 NEW_NFT_ASSET=$NFT_CURRENCY.$NEW_NFT_TOKEN_HEX
 
 $CARDANO_CLI transaction build \
---alonzo-era \
 --tx-in $PAYMENT_UTXO \
---tx-out "$(cat wallets/payment2.addr) + 1379280 + 1 ${NEW_NFT_ASSET}" \
+--tx-out "$(cat wallets/payment.addr) + 1379280 + 1 ${NEW_NFT_ASSET}" \
 --mint "1 ${NEW_NFT_ASSET}" \
---mint-script-file ../../fracada/freemint.plutus \
---mint-redeemer-value [] \
---tx-in-collateral $COLLATERAL_TX \
---change-address $(cat wallets/payment2.addr) \
---testnet-magic $TESTNET_MAGIC_NUM \
+--mint-script-file ./wallets/policy.script \
+--change-address $(cat wallets/payment.addr) \
+--$NETWORK_SELECTION \
 --protocol-params-file pparams.json \
 --out-file tx.raw
 
-. sign_send.sh payment2
+. sign_send.sh payment

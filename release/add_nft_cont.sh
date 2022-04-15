@@ -40,7 +40,6 @@ getInputTx validator
 NFT_UTXO=$SELECTED_UTXO
 NFT_UTXO_LOVELACE=$SELECTED_UTXO_LOVELACE
 NFT_UTXO_TOKENS=$SELECTED_UTXO_TOKENS
-
 section "Select Collateral UTxO"
 getInputTx $SIGNING_WALLET
 COLLATERAL_TX=$SELECTED_UTXO
@@ -50,17 +49,17 @@ build-redeemer.sh ${NEW_NFT_CURRENCY} ${NEW_NFT_TOKEN}  < signaturefiles.txt
 
 echo "add NFT"
 $CARDANO_CLI transaction build \
---alonzo-era \
 --$NETWORK_SELECTION \
 --tx-in ${NFT_UTXO} \
---tx-in-script-file validator.plutus \
+--tx-in-script-file ./plutus/validator.plutus \
 --tx-in-datum-file current-datum.json \
 --tx-in-redeemer-file redeemer.json \
---tx-in ${COLLATERAL_TX} \
---tx-in ${NEW_NFT_UTXO} \
 --tx-in-collateral ${COLLATERAL_TX} \
---tx-out "$(cat wallets/validator.addr) + ${NFT_UTXO_LOVELACE} + ${NFT_UTXO_TOKENS} + 1 $NEW_NFT_ASSET" \
+--tx-in ${NEW_NFT_UTXO} \
+--tx-out "$(cat wallets/validator.addr) + 2000000 + ${NFT_UTXO_TOKENS} + 1 $NEW_NFT_ASSET" \
 --tx-out-datum-embed-file datum.json \
 --change-address ${SELECTED_WALLET_ADDRESS} \
 --protocol-params-file pparams.json \
 --out-file tx.raw
+
+. sign_send.sh $SIGNING_WALLET
