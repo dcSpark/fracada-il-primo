@@ -59,7 +59,7 @@ FakeNft_B_1649692137                                    1
 NftFractions                                    100
 ```
 
-- Optionally, **Fracada** allows adding you to add more `tokens` to be locked and be presented by the `100 NftFractions` that you just minted. Making it into an ***"Token Bag"***. 
+- Optionally, **Fracada** allows adding you to add more `tokens` to be locked and be represented by the `100 NftFractions` that you just minted. Making it into an ***"Token Bag"***. 
 
 ```
 [2022/04/14 11:18:45] info: Adding FakeNft_B to the contract...
