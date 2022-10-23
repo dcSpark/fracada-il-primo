@@ -16,9 +16,20 @@ if [ -z "$2" ]
 then
   read -p 'Inital amount to mint: ' INITIAL_FRACT_TOKENS_AMOUNT
 else
-  echo 'Inital amount to mint:' $2
+  echo 'Inital amount to mint: ' $2
   INITIAL_FRACT_TOKENS_AMOUNT=$2
 fi
+
+if [ -z "$3" ]
+then
+  read -p 'Minimum signatures required: ' MIN_SIGS_REQUIRED
+else
+  echo 'Minimum signatures required: ' $3
+  MIN_SIGS_REQUIRED=$3
+fi
+
+read -r -p 'Enter authorized PubKeyHashes separated by space: ' -a AUTH_PUB_KEYS
+
 
 section "Select NFT UTxO"
 getInputTx $SELECTED_WALLET_NAME
@@ -30,7 +41,7 @@ COLLATERAL_TX=$SELECTED_UTXO
 
 
 #build datum
-. build-datum.sh new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUNT} ${NFT_CURRENCY} ${NFT_TOKEN} 
+. build-datum.sh new ${FRACT_CURRENCY} ${FRACT_TOKEN} ${INITIAL_FRACT_TOKENS_AMOUNT} ${MIN_SIGS_REQUIRED} ${AUTH_PUB_KEYS[@]}
 
 # pay NFT and mint fraction tokens
 $CARDANO_CLI transaction build \

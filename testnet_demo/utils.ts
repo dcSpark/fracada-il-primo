@@ -140,7 +140,7 @@ export const isValidatorScriptInitialized = (outDir: string) => {
     fs.existsSync(`${outDir}/currency-id.txt`);
 }
 
-export const initializeValidatorScript = async (policyId: string, outDir: string, minSig: number) => {
+export const initializeValidatorScript = async (outDir: string, minSig: number) => {
 
   const bootstrapId = getUnixTime();
   const fakeNftName = `FakeNft_A_${bootstrapId}`;
@@ -151,11 +151,10 @@ export const initializeValidatorScript = async (policyId: string, outDir: string
   }
 
   const scriptDump = execa('cabal',
-    ['run', 'script-dump', '--', policyId, fakeNftName, 'NftFractions', `${minSig}`],
+    ['run', 'script-dump', '--', 'NftFractions'],
     { cwd: outDir }
   );
 
-  scriptDump.stdin?.write("keys/signer_1.vkey\nkeys/signer_2.vkey\nkeys/signer_3.vkey");
   scriptDump.stdin?.end();
   await scriptDump;
 
@@ -607,7 +606,7 @@ export const generateProtocolParams = async (outDir: string, networkId: number) 
   }
 }
 
-export const lockNft = async (outDir: string, networkId: number) => {
+export const lockNft = async (outDir: string, networkId: number, minSig: number) => {
 
   const bufferLovelace = 10_000_000;
   const validatorLovelace = 2_000_000;
@@ -636,12 +635,18 @@ export const lockNft = async (outDir: string, networkId: number) => {
     // refresh protocol params
     await generateProtocolParams(outDir, networkId);
 
-    // build lock tx datum
-    await execa('cabal', [
+    const args = [
       'run', 'build-datum ', '--', 'new',
-      fractionCurrencyId, `NftFractions`, `${fractions}`,
-      policyId, `FakeNft_A_${bootstrapId}`
-    ], { cwd: outDir });
+      fractionCurrencyId, `NftFractions`, `${fractions}`, `${minSig}`
+    ]
+
+    // add pubkeyhashes of signers to args
+    for (let x = 1; x <= minSig; x++) {
+      args.push(await generateKeyHashByVKey(`${outDir}/keys/signer_${x}.vkey`))
+    }
+
+    // build lock tx datum
+    await execa('cabal', args, { cwd: outDir });
 
     // build tx
     await execa('cardano-cli', [
@@ -757,23 +762,14 @@ export const addNft = async (outDir: string, networkId: number) => {
   const fakeNftBUtxoAmount = fakeNftBUtxo.amount.find(a => a.unit !== 'lovelace') as Amount;
   const collateralUtxo = getCollateralUtxo(paymentUtxos) as Utxo;
 
-  fs.copyFileSync(`${outDir}/datum.json`, `${outDir}/current-datum.json`);
-
-  await execa('cabal', [
-    'run', 'build-datum', '--', 'add-nft',
-    `current-datum.json`, policyId, `FakeNft_B_${bootstrapId}`
-  ], { cwd: outDir });
-
   await signDatum(outDir, 1);
   await signDatum(outDir, 2);
   await signDatum(outDir, 3);
 
   const buildRedeemer = execa('cabal', [
-    'run', 'build-redeemer', '--',
-    `${policyId}`, `FakeNft_B_${bootstrapId}`,
+    'run', 'build-redeemer'
   ], { cwd: outDir });
 
-  buildRedeemer.stdin?.write("d1.sign\nd2.sign\nd3.sign\n");
   buildRedeemer.stdin?.end();
 
   await buildRedeemer;

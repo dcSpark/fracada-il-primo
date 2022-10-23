@@ -7,7 +7,7 @@ echo "Backup old scripts"
 [ -f "plutus/currency-id.txt" ] && mv "plutus/currency-id.txt" plutus/currency-id.txt.bk
 
 #generate script
-. script-dump.sh ${NFT_CURRENCY} ${NFT_TOKEN} ${FRACT_TOKEN} ${MIN_SIGS} < authorized_keys.txt
+. script-dump.sh ${FRACT_TOKEN}
 
 #Build validator's address
 $CARDANO_CLI address build --payment-script-file validator.plutus --$NETWORK_SELECTION --out-file wallets/validator.addr

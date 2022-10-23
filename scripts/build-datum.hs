@@ -16,7 +16,7 @@ import           Plutus.V1.Ledger.Value
 import           Prelude
 import           System.Environment
 
-decodeDatum :: BL8.ByteString -> FractionNFTDatum
+decodeDatum :: BL8.ByteString -> FracadaDatum
 decodeDatum fileContent =
   let jsonData = fromJust' $ Data.Aeson.decode fileContent
       scriptData = fromRight' $ scriptDataFromJson ScriptDataJsonDetailedSchema jsonData
@@ -28,41 +28,39 @@ main :: IO ()
 main = do
   args <- getArgs
   let nargs = length args
-  if nargs /= 6 && nargs /= 4 && nargs /= 3
+  if (head args == "new" && nargs < 6) || (head args == "mint-more" && nargs /= 3)
     then do
       putStrLn "Usage:"
-      putStrLn "build-datum new <Fraction currency symbol> <Fraction token name> <number of fractions> <NFT currency symbol> <NFT token name>"
+      putStrLn "build-datum new <Fraction currency symbol> <Fraction token name> <number of fractions> <minimal signatures required> <authorized pubkeys>"
       putStrLn "     (creates a datum from scratch)"
-      putStrLn "build-datum add-nft <current datum file> <NFT currency symbol> <NFT token name>"
-      putStrLn "     (update the datum adding a new NFT)"
       putStrLn "build-datum mint-more <current datum file> <number of fractions>"
       putStrLn "     (update the datum minting more fractions)"
       putStr "Provided: "
       print args
     else do
-      datum <- case args of
-        ["new", fracSymbol, fracTknName, numberOfFractions', nftSymbol, nftTokenName'] ->
-          let fracCurrencySymbol = fromString fracSymbol
+      datum <- case head args of
+        "new" -> do
+          let fracSymbol = args !! 1
+              fracTknName = args !! 2
+              numberOfFractions' = args !! 3
+              minSigs' = args !! 4
+              pubKeys' = drop 5 args
+              fracCurrencySymbol = fromString fracSymbol
               fracTokenName = fromString fracTknName
-              nftCurrencySymbol = fromString nftSymbol
-              nftTokenName = fromString nftTokenName'
               numberOfFractions = read numberOfFractions' :: Integer
 
+              minSigs = read minSigs' :: Integer
+              pubKeys = map fromString pubKeys' :: [PubKeyHash]
+
               frac = AssetClass (fracCurrencySymbol, fracTokenName)
-              nft = AssetClass (nftCurrencySymbol, nftTokenName)
-           in pure FractionNFTDatum {tokensClass = frac, totalFractions = numberOfFractions, newNftClass = nft}
-        ["add-nft", currentDatumFile, nftSymbol, nftTokenName'] -> do
+           in pure FracadaDatum {fractionAC = frac, emittedFractions = numberOfFractions, authorizedPubKeys = pubKeys, minSigRequired = minSigs}
+        "mint-more" -> do
+          let currentDatumFile = args !! 1
+              numberOfFractions' = args !! 2
           currentDatumContent <- BL8.readFile currentDatumFile
-          let currentDatum = decodeDatum currentDatumContent
-              nftCurrencySymbol = fromString nftSymbol
-              nftTokenName = fromString nftTokenName'
-              nft = AssetClass (nftCurrencySymbol, nftTokenName)
-          pure currentDatum {newNftClass = nft}
-        ["mint-more", currentDatumFile, numberOfFractions'] -> do
-          currentDatumContent <- BL8.readFile currentDatumFile
-          let currentDatum@FractionNFTDatum {totalFractions = currentFractions} = decodeDatum currentDatumContent
+          let currentDatum@FracadaDatum {emittedFractions = currentFractions} = decodeDatum currentDatumContent
               newFractions = read numberOfFractions' :: Integer
-          pure currentDatum {totalFractions = currentFractions + newFractions}
+          pure currentDatum {emittedFractions = currentFractions + newFractions}
         _ -> error "Unrecognized parameters"
 
       let datumToEncode = Plutus.builtinDataToData $ toBuiltinData datum

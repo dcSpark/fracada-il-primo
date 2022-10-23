@@ -30,7 +30,7 @@ flag erase-debug-messages
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain, Fracada.Utils
+  exposed-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain, Fracada.Utils, Fracada.Context, Fracada.Constants
   build-depends:       aeson
                      , base
                      , containers
@@ -72,11 +72,63 @@ library
                  -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
                  -fplugin-opt PlutusTx.Plugin:defer-errors
 
+executable trace
+    main-is:            Trace.hs
+    hs-source-dirs:     test, src
+    other-modules:      Fracada.Minting, Fracada.Validator, Fracada.Offchain, Spec.EvilEndpoints, Spec.EvilValidator, Fracada.Utils, Fracada.Context, Fracada.Constants
+    ghc-options:        -main-is Trace
+                        -fno-specialise
+    build-depends:      aeson
+                        , fracada-il-primo
+                        , base ^>=4.14.1.0
+                        , base16-bytestring
+                        , bytestring
+                        , data-default
+                        , extra
+                        , flat
+                        , foldl
+                        , freer-simple
+                        , containers
+                        , lens
+                        , playground-common
+                        , plutus-contract
+                        , plutus-core
+                        , plutus-ledger
+                        , plutus-ledger-api
+                        , plutus-ledger-constraints
+                        , plutus-tx
+                        , plutus-tx-plugin
+                        , streaming
+                        , tasty
+                        , tasty-hunit
+                        , text
+    default-extensions: DataKinds
+                      DeriveAnyClass
+                      DeriveGeneric
+                      DerivingStrategies
+                      EmptyDataDecls
+                      ExplicitForAll
+                      FunctionalDependencies
+                      GADTs
+                      MultiParamTypeClasses
+                      NamedFieldPuns
+                      OverloadedStrings
+                      PolyKinds
+                      KindSignatures
+                      StandaloneDeriving
+                      TemplateHaskell
+                      TypeApplications
+                      TypeFamilies
+                      TypeOperators
+                      MultiParamTypeClasses
+                      ScopedTypeVariables
+                      StandaloneKindSignatures
+    cpp-options:      -DDEBUG
 
 executable           build-datum
   main-is:           build-datum.hs
   hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Validator, Fracada.Utils
+  other-modules:     Fracada.Validator, Fracada.Utils, Fracada.Context, Fracada.Constants
   build-depends:     base
                     , aeson
                     , cardano-api
@@ -120,7 +172,7 @@ executable           build-datum
 executable           build-redeemer
   main-is:           build-redeemer.hs
   hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Validator, Fracada.Utils
+  other-modules:     Fracada.Validator, Fracada.Utils, Fracada.Context, Fracada.Constants
   build-depends:     base
                     , aeson
                     , containers
@@ -173,7 +225,7 @@ executable           build-redeemer
 executable           script-dump
   main-is:           script-dump.hs
   hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain, Fracada.Utils
+  other-modules:     Fracada.Minting, Fracada.Validator, Fracada.Offchain, Fracada.Utils, Fracada.Context, Fracada.Constants
   build-depends:     base
                     , fracada-il-primo
                     , aeson
@@ -224,6 +276,7 @@ executable           script-dump
                       -fobject-code
                       -fno-ignore-interface-pragmas
                       -fno-omit-interface-pragmas
+                      -fno-specialise
                       -fplugin-opt PlutusTx.Plugin:defer-errors
 
 
@@ -231,7 +284,7 @@ executable           fracada-scripts
   main-is:           Main.hs
   hs-source-dirs:    src, scripts, test
 
-  other-modules:     Spec.Fracada, Spec.Scenarios, Spec.EvilEndpoints, Fracada.Utils, Fracada.Minting, Fracada.Offchain, Fracada.Validator
+  other-modules:     Spec.Fracada, Spec.Scenarios, Spec.EvilEndpoints, Spec.EvilValidator, Fracada.Utils, Fracada.Context, Fracada.Minting, Fracada.Offchain, Fracada.Validator, Fracada.Constants
   ghc-options:       -Wall
                       -Wcompat
                       -Wincomplete-record-updates
@@ -249,8 +302,10 @@ executable           fracada-scripts
                     , cardano-api
                     , fracada-il-primo
                     , optparse-applicative
+                    , plutus-core
                     , plutus-tx
                     , plutus-tx-plugin
+                    , plutus-core
                     , plutus-contract
                     , plutus-ledger
                     , plutus-ledger-api
@@ -301,7 +356,7 @@ test-suite          fracada-test
   type:             exitcode-stdio-1.0
   main-is:          Spec.hs
   hs-source-dirs:   test, src
-  other-modules:    Spec.Fracada, Spec.Scenarios, Fracada.Minting, Fracada.Validator, Fracada.Offchain, Spec.EvilEndpoints, Fracada.Utils
+  other-modules:    Spec.Fracada, Spec.Scenarios, Fracada.Minting, Fracada.Validator, Fracada.Offchain, Spec.EvilEndpoints, Spec.EvilValidator, Fracada.Utils, Fracada.Context, Fracada.Constants
   build-depends:     base
                     , fracada-il-primo
                     , aeson
@@ -365,6 +420,79 @@ test-suite          fracada-test
                       -fobject-code
                       -fno-ignore-interface-pragmas
                       -fno-omit-interface-pragmas
+                      -fno-specialise
+                      -fplugin-opt PlutusTx.Plugin:defer-errors
+  cpp-options:        -DDEBUG
+
+executable            test-utxo-limit
+  main-is:            TestUtxoLimit.hs
+  hs-source-dirs:     test, src
+  ghc-options:        -main-is TestUtxoLimit
+  other-modules:      Fracada.Minting, Fracada.Validator, Fracada.Offchain, Fracada.Utils, Fracada.Context, Fracada.Constants
+  build-depends:      base
+                    , fracada-il-primo
+                    , aeson
+                    , cardano-api
+                    , cardano-crypto
+                    , cardano-crypto-class
+                    , bytestring
+                    , containers
+                    , freer-extras
+                    , plutus-core
+                    , plutus-contract
+                    , plutus-ledger
+                    , plutus-ledger-api
+                    , plutus-ledger-constraints
+                    , plutus-simple-model
+                    , plutus-tx
+                    , text
+                    , playground-common
+                    , freer-simple
+                    , foldl
+                    , streaming
+                    , QuickCheck
+                    , tasty
+                    , tasty-hunit
+                    , tasty-hedgehog
+                    , tasty-golden
+                    , tasty-quickcheck
+                    , mtl
+                    , lens
+                    , data-default
+                    , tasty
+                    , base16-bytestring
+  default-language:   Haskell2010
+  default-extensions: DataKinds
+                      DeriveAnyClass
+                      DeriveGeneric
+                      DerivingStrategies
+                      ExplicitForAll
+                      FunctionalDependencies
+                      GADTs
+                      MultiParamTypeClasses
+                      NamedFieldPuns
+                      OverloadedStrings
+                      PolyKinds
+                      KindSignatures
+                      StandaloneDeriving
+                      TemplateHaskell
+                      TypeApplications
+                      TypeFamilies
+                      TypeOperators
+                      MultiParamTypeClasses
+                      ScopedTypeVariables
+                      StandaloneKindSignatures
+  ghc-options:        -Wall
+                      -Wcompat
+                      -Wincomplete-record-updates
+                      -Wincomplete-uni-patterns
+                      -Wredundant-constraints
+                      -Werror
+                      -Wpartial-fields
+                      -fobject-code
+                      -fno-ignore-interface-pragmas
+                      -fno-omit-interface-pragmas
+                      -fno-specialise
                       -fplugin-opt PlutusTx.Plugin:defer-errors
 
   if !(impl(ghcjs) || os(ghcjs))
@@ -374,7 +502,7 @@ test-suite          fracada-test
 executable           sign
   main-is:           sign.hs
   hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Validator, Fracada.Utils
+  other-modules:     Fracada.Validator, Fracada.Utils, Fracada.Context, Fracada.Constants
   build-depends:     base
                     , aeson
                     , cardano-api
