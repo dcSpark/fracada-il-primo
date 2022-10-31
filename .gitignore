@@ -8,5 +8,7 @@ demo/continue_add_nft_*.sh
 demo/current-datum.json
 demo/datum-hash.txt
 demo/d*.sign
+demo/add_nft_cont.sh
+demo/multisign_send_cont.sh
 testnet_demo/node_modules
 testnet_demo/dist

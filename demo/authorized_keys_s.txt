@@ -1,0 +1,3 @@
+wallets/key1.skey
+wallets/key2.skey
+wallets/key3.skey

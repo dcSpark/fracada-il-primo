@@ -23,7 +23,7 @@ import           Fracada.Utils
 -- How many times to try adding token in the test
 -- (make sure there is enough tokens in the nftTokens list, it must be addTokenRepetitions + 1)
 addTokenRepetitions :: Int
-addTokenRepetitions = 13
+addTokenRepetitions = 20
 
 main :: IO ()
 main = do
@@ -57,6 +57,12 @@ nftTokens =
   , AssetClass (nftCurrency, "TOKEN13")
   , AssetClass (nftCurrency, "TOKEN14")
   , AssetClass (nftCurrency, "TOKEN15")
+  , AssetClass (nftCurrency, "TOKEN16")
+  , AssetClass (nftCurrency, "TOKEN17")
+  , AssetClass (nftCurrency, "TOKEN18")
+  , AssetClass (nftCurrency, "TOKEN19")
+  , AssetClass (nftCurrency, "TOKEN20")
+  , AssetClass (nftCurrency, "TOKEN21")
   ]
 
 adaValue :: Integer -> Value

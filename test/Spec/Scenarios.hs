@@ -55,10 +55,19 @@ nftTokens =
   , AssetClass (nftCurrency, "NFT12")
   , AssetClass (nftCurrency, "NFT13")
   , AssetClass (nftCurrency, "NFT14")
+  , AssetClass (nftCurrency, "NFT15")
+  , AssetClass (nftCurrency, "NFT16")
+  , AssetClass (nftCurrency, "NFT17")
+  , AssetClass (nftCurrency, "NFT18")
+  , AssetClass (nftCurrency, "NFT19")
+  , AssetClass (nftCurrency, "NFT20")
+  , AssetClass (nftCurrency, "NFT21")
+  , AssetClass (nftCurrency, "NFT22")
+  , AssetClass (nftCurrency, "NFT23")
   ]
 
 wallets :: [Wallet]
-wallets = [w1, w2, w3, w4]
+wallets = [w1, w2, w3, w4, w5]
 
 privKeys :: [PaymentPrivateKey]
 privKeys = map (paymentPrivateKey . fromJust' . walletToMockWallet) wallets
@@ -76,10 +85,11 @@ baseValue = Ada.lovelaceValueOf 1_000_000_000
          <> assetClassValue nft3 1
 
 emCfg :: EmulatorConfig
-emCfg = EmulatorConfig (Left $ Map.fromList [(w1, baseValue), (w2, baseValue), (w3, v3), (w4, v4)]) def
+emCfg = EmulatorConfig (Left $ Map.fromList [(w1, baseValue), (w2, baseValue), (w3, v3), (w4, v4), (w5, v5)]) def
   where
     v3 = baseValue <> mconcat (map (`assetClassValue` 1) $ take 5 nftTokens) -- put the first half of the tokens to the first wallet
-    v4 = baseValue <> mconcat (map (`assetClassValue` 1) $ drop 5 nftTokens) -- and the second hald to the second wallet
+    v4 = baseValue <> mconcat (map (`assetClassValue` 1) $ take 7 $ drop 5 nftTokens) -- and the second hald to the second wallet
+    v5 = baseValue <> mconcat (map (`assetClassValue` 1) $ take 7 $ drop 12 nftTokens) -- and the second hald to the second wallet
 
 toFraction :: Integer -> ToFraction
 toFraction fractionsCount =
@@ -335,5 +345,8 @@ transactionLimitExceeded = do
   forM_ ([nft2, nft3] ++ (take 5 nftTokens)) $ \token -> do
     callAddNFT w3 token
 
-  forM_ (drop 5 nftTokens) $ \token -> do
+  forM_ (take 7 $ drop 5 nftTokens) $ \token -> do
     callAddNFT w4 token
+
+  forM_ (take 7 $ drop 12 nftTokens) $ \token -> do
+    callAddNFT w5 token

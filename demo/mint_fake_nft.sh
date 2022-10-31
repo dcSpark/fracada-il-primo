@@ -1,6 +1,8 @@
 . config.sh
 . functions.sh
 . params.sh
+# LOAD CARDANO VARIABLES
+. ./demo_params.sh
 
 if [ -z "$1" ]
 then
@@ -9,6 +11,8 @@ else
   echo 'Token Name:' $1
   TOKEN_NAME=$1
 fi
+
+NFT_CURRENCY=$($CARDANO_CLI transaction policyid --script-file wallets/policy.script)
 
 section "Select payment UTxO"
 getInputTx payment

@@ -4,134 +4,170 @@
  *
  */
 
-import { config } from './config';
 import {
-  addNft,
   bootstrapWallet,
   generatePaymentKeys,
   getBalanceValueFromCliUtxos,
   getPolicyIdByScript as getPolicyIdByKey,
+  getTokenName,
   getUtxoByPaymentKey,
   getValidatorAddress,
-  getValidatorUtxos,
   getWalletAddress as getWalletAddressByKey,
   initializeValidatorScript,
   isPaymentKeysExist,
   isValidatorScriptInitialized,
-  lockNft,
   sleep,
   stringFormatBalance,
-  unlockNft,
-  Utxo,
-  waitForTxConf
-} from './utils';
-import { createLogger, transports, format } from 'winston';
+  waitForTxConf,
+} from "./utils";
+import { addNft, lockNft, unlockNft } from "./endpoints";
+import { createLogger, transports, format } from "winston";
+import { tokenAPrefix, tokenBPrefix } from "./constants";
 
 const Main = async () => {
-
   logger.info("Welcome to Fracada Testnet Deployment Script");
 
-  if (!isPaymentKeysExist(config.OUT_DIR)) {
+  await generateKeys();
+  await compileScript();
+  await waitForBalance();
+
+  // Testing scenario
+  if (!(await bootstrap())) return;
+  if (!(await fractionalize())) return;
+  if (!(await addAnotherToken())) return;
+  if (!(await returnTokens())) return;
+};
+
+const generateKeys = async () => {
+  if (!isPaymentKeysExist()) {
     logger.warn(`Payment keypair not found, generating new keypair...`);
-    await generatePaymentKeys(config.OUT_DIR, config.NETWORK_ID);
+    await generatePaymentKeys();
   }
 
-  logger.info(`Payment Address: ${await getWalletAddressByKey(config.OUT_DIR, 'payment')}`);
-  const fakeNftPolicyId = await getPolicyIdByKey(config.OUT_DIR, 'payment');
-  logger.info(`Fake NFT PolicyId: ${fakeNftPolicyId}`);
+  logger.info(`Payment Address: ${getWalletAddressByKey("payment")}`);
+  const policyId = await getPolicyIdByKey("payment");
+  logger.info(`Tokens PolicyId: ${policyId}`);
+};
 
-  // Check if validator script is already initialized
-  if (!isValidatorScriptInitialized(config.OUT_DIR)) {
-    logger.warn('Plutus Script not detected, Initializating paramterization...');
-    await initializeValidatorScript(config.OUT_DIR, config.MIN_SIG);
-    logger.info('Plutus Script Initialized!');
+const compileScript = async () => {
+  if (!isValidatorScriptInitialized()) {
+    logger.warn("Plutus Script not detected, Initializating...");
+    await initializeValidatorScript();
+    logger.info("Plutus Script Initialized!");
   }
-  
-  const validatorAddr = await getValidatorAddress(config.OUT_DIR, config.NETWORK_ID);
+
+  const validatorAddr = await getValidatorAddress();
   logger.info(`Contract Address: ${validatorAddr}`);
+};
 
-  // Display Balance
-  let utxos = [] as Utxo[];
-  let balance = {} as any;
-
+const waitForBalance = async () => {
   while (true) {
-    utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
-    balance = getBalanceValueFromCliUtxos(utxos);
-    if (balance['lovelace'] === undefined || balance['lovelace'] < 50_000_000) {
-      logger.warn('Wallet balance is less than 50,000,000 Lovelace, please send some lovelaces to the payment wallet');
+    const utxos = await getUtxoByPaymentKey("payment");
+
+    const balance = getBalanceValueFromCliUtxos(utxos);
+    if (balance["lovelace"] === undefined || balance["lovelace"] < 50_000_000) {
+      logger.warn(
+        "Wallet balance is less than 50,000,000 Lovelace, please send some lovelaces to the payment wallet"
+      );
       await sleep(10_000);
-    } else break;
+    } else {
+      logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
+      break;
+    }
+  }
+};
+
+const bootstrap = async () => {
+  logger.info("Bootstrapping wallet for Fracada end to end test...");
+  const bootstrapTxId = await bootstrapWallet();
+  if (!bootstrapTxId) {
+    logger.error("Error bootstrapping wallet.");
+    return false;
   }
 
+  logger.info(`Bootstrap txId: ${bootstrapTxId}`);
+  logger.info(`Waiting for confirmation...`);
+  await waitForTxConf(bootstrapTxId);
+
+  const utxos = await getUtxoByPaymentKey("payment");
+  const balance = getBalanceValueFromCliUtxos(utxos);
   logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
 
-  // Bootstrap Wallet
-  logger.info('Bootrapping wallet for Fracada end to end test...');
-  const bootstrapTxId = await bootstrapWallet(config.OUT_DIR, config.NETWORK_ID);
+  return true;
+};
 
-  if (bootstrapTxId !== undefined) {
-    logger.info(`Bootstrap txId: ${bootstrapTxId}`);
-    logger.info(`Waiting for confirmation...`);
-    await waitForTxConf(bootstrapTxId, config.NETWORK_ID);
+const fractionalize = async () => {
+  logger.info(`Fractionalizing ${getTokenName(tokenAPrefix)}...`);
+  const lockTxId = await lockNft();
+  if (!lockTxId) {
+    logger.error(`Error fractionalizing ${getTokenName(tokenAPrefix)}.`);
+    return false;
   }
 
-  utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
-  balance = getBalanceValueFromCliUtxos(utxos);
+  logger.info(`Fractionlization txId: ${lockTxId}`);
+  logger.info(`Waiting for confirmation...`);
+
+  await waitForTxConf(lockTxId);
+  logger.info("Fractionalization Complete!");
+
+  const utxos = await getUtxoByPaymentKey("payment");
+  const balance = getBalanceValueFromCliUtxos(utxos);
   logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
 
-  logger.info('Fractionalizing FakeNft_A...');
-  const lockTxId = await lockNft(config.OUT_DIR, config.NETWORK_ID, config.MIN_SIG);
-  if (lockTxId !== undefined) {
-    logger.info(`Fractionlization txId: ${lockTxId}`);
-    logger.info(`Waiting for confirmation...`);
-    await waitForTxConf(lockTxId, config.NETWORK_ID);
+  return true;
+};
+
+const addAnotherToken = async () => {
+  logger.info(`Adding ${getTokenName(tokenBPrefix)} to the contract...`);
+  const addNftTxId = await addNft();
+  if (!addNftTxId) {
+    logger.error(`Error adding ${getTokenName(tokenBPrefix)}.`);
+    return false;
   }
 
-  logger.info('Fractionalization Complete!');
+  logger.info(`AddNft txId: ${addNftTxId}`);
+  logger.info(`Waiting for confirmation...`);
+  await waitForTxConf(addNftTxId);
 
-  utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
-  balance = getBalanceValueFromCliUtxos(utxos);
+  logger.info(`${getTokenName(tokenBPrefix)} added to the contract!`);
+
+  const utxos = await getUtxoByPaymentKey("payment");
+  const balance = getBalanceValueFromCliUtxos(utxos);
   logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
-  logger.info('Adding FakeNft_B to the contract...');
-  const addNftTxId = await addNft(config.OUT_DIR, config.NETWORK_ID);
-  if (addNftTxId !== undefined) {
-    logger.info(`AddNft txId: ${addNftTxId}`);
-    logger.info(`Waiting for confirmation...`);
-    await waitForTxConf(addNftTxId, config.NETWORK_ID);
+
+  return true;
+};
+
+const returnTokens = async () => {
+  logger.info("Unlocking tokens...");
+  const unlockTxId = await unlockNft();
+  if (!unlockTxId) {
+    logger.error("Error unlocking tokens.");
+    return false;
   }
 
-  logger.info('FakeNft_B added to the contract!');
+  logger.info(`Unlock txId: ${unlockTxId}`);
+  logger.info(`Waiting for confirmation...`);
+  await waitForTxConf(unlockTxId);
 
-  utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
-  balance = getBalanceValueFromCliUtxos(utxos);
+  logger.info("Unlocking Complete!");
+
+  const utxos = await getUtxoByPaymentKey("payment");
+  const balance = getBalanceValueFromCliUtxos(utxos);
   logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
 
-  logger.info('Unlocking FakeNFTs...');
-  const unlockTxId = await unlockNft(config.OUT_DIR, config.NETWORK_ID);
-
-  if (unlockTxId !== undefined) {
-    logger.info(`Unlock txId: ${unlockTxId}`);
-    logger.info(`Waiting for confirmation...`);
-    await waitForTxConf(unlockTxId, config.NETWORK_ID);
-  }
-
-  logger.info('Unlocking Complete!');
-
-  utxos = await getUtxoByPaymentKey(config.OUT_DIR, 'payment', config.NETWORK_ID);
-  balance = getBalanceValueFromCliUtxos(utxos);
-  logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
-
-}
+  return true;
+};
 
 const logger = createLogger({
   format: format.combine(
     format.colorize({ all: true }),
-    format.timestamp({ format: 'YYYY/MM/DD HH:mm:ss' }),
-    format.printf(info => `[${info.timestamp}] ${info.level}: ${info.message}`)
+    format.timestamp({ format: "YYYY/MM/DD HH:mm:ss" }),
+    format.printf(
+      (info) => `[${info.timestamp}] ${info.level}: ${info.message}`
+    )
   ),
-  transports: [
-    new transports.Console()
-  ]
+  transports: [new transports.Console()],
 });
 
 Main();
