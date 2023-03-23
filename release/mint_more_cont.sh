@@ -31,7 +31,7 @@ getInputTx $SIGNING_WALLET
 COLLATERAL_TX=$SELECTED_UTXO
 
 echo "Building redeemer"
-. build-redeemer.sh ${FRACT_CURRENCY} ${FRACT_TOKEN}  < signaturefiles.txt
+. build-redeemer.sh
 
 echo "Mint fraction tokens"
 $CARDANO_CLI transaction build \

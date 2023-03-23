@@ -43,7 +43,7 @@ const Main = async () => {
   // Check if validator script is already initialized
   if (!isValidatorScriptInitialized(config.OUT_DIR)) {
     logger.warn('Plutus Script not detected, Initializating paramterization...');
-    await initializeValidatorScript(fakeNftPolicyId, config.OUT_DIR, config.MIN_SIG);
+    await initializeValidatorScript(config.OUT_DIR, config.MIN_SIG);
     logger.info('Plutus Script Initialized!');
   }
   
@@ -80,7 +80,7 @@ const Main = async () => {
   logger.info(`\n[Wallet Balance] \n${stringFormatBalance(balance)}`);
 
   logger.info('Fractionalizing FakeNft_A...');
-  const lockTxId = await lockNft(config.OUT_DIR, config.NETWORK_ID);
+  const lockTxId = await lockNft(config.OUT_DIR, config.NETWORK_ID, config.MIN_SIG);
   if (lockTxId !== undefined) {
     logger.info(`Fractionlization txId: ${lockTxId}`);
     logger.info(`Waiting for confirmation...`);

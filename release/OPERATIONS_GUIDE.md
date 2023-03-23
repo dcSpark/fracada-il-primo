@@ -86,8 +86,7 @@ Calling
 add_nft.sh {nft currency id} {nft token name}
 ```
 
-Will read the current datum and generate a new `datum.json` file with the new ntf to add and the corresponding `datum-hash.txt` file to be distributed for signing.
-The script will also generate a shell script to be called when the signatures have been collected, in the form of `continue_add_nft_{nft currency id}_{nft token name}.sh`
+Will generate a shell script to be called when the signatures have been collected, in the form of `continue_add_nft_{nft currency id}_{nft token name}.sh`
 
 ### Signing the hash to add a new NFT
 

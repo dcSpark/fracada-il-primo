@@ -45,7 +45,7 @@ getInputTx $SIGNING_WALLET
 COLLATERAL_TX=$SELECTED_UTXO
 
 echo "building redeemer"
-build-redeemer.sh ${NEW_NFT_CURRENCY} ${NEW_NFT_TOKEN}  < signaturefiles.txt
+build-redeemer.sh
 
 echo "add NFT"
 $CARDANO_CLI transaction build \

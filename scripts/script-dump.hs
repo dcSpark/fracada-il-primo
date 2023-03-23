@@ -3,36 +3,20 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
 
 import           Prelude
-import           System.Environment
 
 import           Cardano.Api
 import           Cardano.Api.Shelley
 import           Codec.Serialise
 
-import qualified Cardano.Crypto.Wallet      as Crypto
 import qualified Cardano.Ledger.Alonzo.Data as Alonzo
 import qualified Plutus.V1.Ledger.Api       as Plutus
-
 
 import qualified Data.ByteString.Lazy       as LB
 
 import qualified Data.ByteString.Short      as SBS
-import           Data.Foldable              (toList)
-
-import           Ledger                     (PubKey (..))
-import           Ledger.Bytes
-
 
 import           Fracada.Minting
 import           Fracada.Validator
-
-import           Data.String                (IsString (..))
-import           Plutus.V1.Ledger.Value
-
-import           Text.Printf                (printf)
-
-loadVkey :: String -> IO (Either (FileError TextEnvelopeError) (VerificationKey PaymentExtendedKey))
-loadVkey fileName = readFileTextEnvelope (AsVerificationKey AsPaymentExtendedKey) fileName
 
 -- toPrivKey :: SigningKey PaymentExtendedKey -> Crypto.XPrv
 -- toPrivKey (PaymentExtendedSigningKey key) = key
@@ -40,66 +24,32 @@ loadVkey fileName = readFileTextEnvelope (AsVerificationKey AsPaymentExtendedKey
 -- xPubToPublicKey :: Crypto.XPub -> PubKey
 -- xPubToPublicKey = PubKey . KB.fromBytes . Crypto.xpubPublicKey
 
-toPubKey :: VerificationKey PaymentExtendedKey -> PubKey
-toPubKey (PaymentExtendedVerificationKey vk)  = PubKey $ Ledger.Bytes.fromBytes $ Crypto.xpubPublicKey vk
-
 main :: IO ()
 main = do
-  args <- getArgs
-  let nargs = length args
-  if nargs /= 4 then
-    do
-      putStrLn $ "Usage:"
-      putStrLn $ "script-dump <NFT currency symbol> <NFT token name> <fraction token name> <min sig required>  < paths to authorized vkey files"
-  else
-    do
-      stdInText <- getContents
-      vKeys <- mapM loadVkey $ lines stdInText
-      let
-        pks =  map toPubKey $ concatMap toList vKeys
-        [nftSymbol, nftTokenName', fractionTokenName', minSigs'] = args
-        validatorname = "validator.plutus"
-        mintingname = "minting.plutus"
-        scriptnum = 42
-        nftCurrencySymbol = fromString nftSymbol
-        nftTokenName = fromString nftTokenName'
-        fractionTokenName = fromString fractionTokenName'
-        minSigs = read minSigs'
+  let
+    validatorname = "validator.plutus"
+    mintingname = "minting.plutus"
+    scriptnum = 42
 
-      if length pks < minSigs then
-        do
-          putStrLn $ printf "Not enough Public keys for required minum, required %s, found %s" (show minSigs) (show $ length pks)
-          putStrLn $ printf "minsigs %s" $ show minSigs
-      else
-        do
-          let
-            nft = AssetClass (nftCurrencySymbol, nftTokenName)
 
-            parameters = FractionNFTParameters {initTokenClass= nft,authorizedPubKeys = pks, minSigRequired= toInteger minSigs}
+    validatorAsCbor = serialise fractionValidatorScript
+    validatorShortBs = SBS.toShort . LB.toStrict $ validatorAsCbor
+    validatorScript = PlutusScriptSerialised validatorShortBs
 
-            fractionToken = Plutus.TokenName fractionTokenName
+    mintingAsValidator = Plutus.Validator $ Plutus.unMintingPolicyScript fracadaPolicy
+    mintingAsCbor = serialise mintingAsValidator
+    mintingScriptShortBs = SBS.toShort . LB.toStrict $ mintingAsCbor
+    mintingScript = PlutusScriptSerialised mintingScriptShortBs
 
-            appliedValidatorScript =fractionValidatorScript parameters
+  putStrLn $ "Writing output to: " ++ validatorname
+  writePlutusScript scriptnum validatorname validatorScript validatorShortBs
 
-            validatorAsCbor = serialise appliedValidatorScript
-            validatorShortBs = SBS.toShort . LB.toStrict $ validatorAsCbor
-            validatorScript = PlutusScriptSerialised validatorShortBs
-            appliedMintingPolicy = mintFractionTokensPolicy parameters fractionToken
+  writeFile "validator-hash.txt" (show fracadaValidatorHash)
 
-            mintingAsValidator = Plutus.Validator $ Plutus.unMintingPolicyScript appliedMintingPolicy
-            mintingAsCbor = serialise mintingAsValidator
-            mintingScriptShortBs = SBS.toShort . LB.toStrict $ mintingAsCbor
-            mintingScript = PlutusScriptSerialised mintingScriptShortBs
+  putStrLn $ "Writing output to: " ++ mintingname
+  writePlutusScript scriptnum mintingname mintingScript mintingScriptShortBs
 
-          putStrLn $ "Writing output to: " ++ validatorname
-          writePlutusScript scriptnum validatorname validatorScript validatorShortBs
-
-          writeFile "validator-hash.txt" (show $ fractionNftValidatorHash parameters)
-
-          putStrLn $ "Writing output to: " ++ mintingname
-          writePlutusScript scriptnum mintingname mintingScript mintingScriptShortBs
-
-          writeFile "currency-id.txt" (show $ curSymbol parameters fractionToken)
+  writeFile "currency-id.txt" (show curSymbol)
 
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
