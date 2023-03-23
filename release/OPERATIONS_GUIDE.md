@@ -1,7 +1,7 @@
 
-# Fracada il primo operations guide
+# Fracada Il Primo operations guide
 
-This dApp expands on fracada, enabling adding more NFTs to the contract and mint more tokens after the intial minting.
+This dApp expands on Fracada, enabling adding more tokens to the contract and mint more tokens after the intial minting.  
 Here we describe the steps to execute for each functionality.
 
 ## Configuration
@@ -9,42 +9,27 @@ Here we describe the steps to execute for each functionality.
 The different scripts will read the configuration
 The following environment variables must be defined:
 
-* NFT_CURRENCY
-    Currency id of the first NFT to lock in fracada.
-* NFT_TOKEN
-    Token name of the first NFT to lock in fracada.
-* FRACT_TOKEN
-    Token name of the fractional tokens (currency id for fractional tokens is generated)
-* MIN_SIGS
-    Minimun number of signatures required to approve adding more NFTs or minting more fractional tokens
-
-Example (`demo/demo_params.sh`)
-
-```sh
-export NFT_CURRENCY="58e4abca68b2f61f8ec0a930016ab0817dfdc0d5183587f10fa501fb"
-export NFT_TOKEN="FakeNFT_A"
-export FRACT_TOKEN="FracadaTokenA"
-export MIN_SIGS=2
-```
-
-### `params.sh`
-
-Initial nft asset and factional asset derived from the environment variables defined above.
-
 ### `config.sh`
 
 node and network parameters required by cardano-cli.
 
+### `params.sh`
+
+Initial token asset derived from the environment variables defined above, minted tokens currency ID, and validity token asset derived from the minting policy.
+
 ### `sign_send.sh`
 
-This script signs and submits the transaction to the chain. It takes a skey name and assumes its stored in the address folder (see demo/address)
+This script signs and submits the transaction to the chain. It takes a skey name and assumes its stored in the wallets folder.
 Feel free to modify it to suit your security needs.
+
+## Helper script to mint a token
+
+You can use the script `demo/mint_fake_nft.sh` to mint an arbitrary token for locking/adding purposes.
 
 ## Initial setup
 
-Before executing the lock and mint script, we need to generate validator and minting (.plutus) contracts, the contract address, and fractional asset currency id.
-The initial NFT to lock, the fraction token name, and the minimum number of signatures required will be read from the environment (see `demo/demo_params.sh`).
-Requires a list of extended public keys paths given in the `authorized_keys.txt` file. (see `demo/authorized_keys.txt`)
+Before executing the lock and mint script, we need to generate validator and minting (.plutus) contracts, the contract address, and fractional asset currency id.  
+Requires a list of extended public keys paths given in the `authorized_keys.txt` file and list of private keys paths in the `authorized_keys_s.txt` file. (see `demo/authorized_keys.txt` and `demo/authorized_keys_s.txt`)
 The command is invoked with:
 
 ```sh
@@ -59,103 +44,85 @@ It will generate the following output files:
 * `minting.plutus` - onchain code of the minting script
 * `currency-id.txt` - currency id of fractional tokens
 
-## Lock NFT and initial mint
+(see `demo/init.sh` for usage)
 
-To lock the initial NFT and mint the fractional tokens, run:
+## Lock token and initial mint
+
+To lock the initial token and mint the fractional tokens, run:
 
 ```sh
-lock_nft.sh {wallet} {initial amount to mint}
+lock_nft.sh {wallet} {initial amount to mint} {minimum signatures required} {initial token currency ID} {initial token name}
 ```
 
-Where `{wallet}` is the name of the `.addr` file in wallet folder that contains the address of the wallet holding the NFT, and `{initial amount to mint}` is the number of fractional tokens to mint. You will be prompted to select the NFT and collateral utxo, and the transaction will be built, signed, and sent (using `sign_send.sh`).
+Where :
+* `{wallet}` is the name of the `.addr` file in wallet folder that contains the address of the wallet holding the token,
+* `{initial amount to mint}` is the number of fractional tokens to mint,
+* `{minimum signatures required}` is the number of signatures (of wallets specified in `authorized_keys.txt`) that will be required later in `add_nft` and `mint_more` functions,
+* `{initial token currency ID}` is the currency ID of the token to be locked,
+* `{initial token name}` is the name (in plaintext) of the token to be locked,
+
+You will be prompted to select the token and collateral utxo, and the transaction will be built, signed, and sent (using `sign_send.sh`).
 The current datum will be saved in the `datum.json` file.
 
-## Include additional NFTs in the contract
+## Include additional tokens in the contract
 
-To add a new NFT to the contract, it first must be approved by the authorized signatures (defined in the initial setup in the `authorized_keys.txt` file ), so the process is broken into three steps:
+To add a new token to the contract, it first must be approved by the authorized signatures (defined in the initial setup in the `authorized_keys.txt` file ), so the process is broken into two steps:
 
-* generate the datum and datum hash based on the new NFT to add
-* Enough approvers signed the datum-hash.txt
-* build the transaction adding the signed hashes to the redeemer
+* Build a raw transaction
+* Sign the transaction with enough approvers and send it
 
-### Generate datum and hash to be signed for adding a new NFT
+### Generate a transaction to be signed for adding a new token
 
 Calling
 
 ```sh
-add_nft.sh {nft currency id} {nft token name}
+add_nft.sh {token currency ID} {token name} {wallet name}
 ```
 
-Will generate a shell script to be called when the signatures have been collected, in the form of `continue_add_nft_{nft currency id}_{nft token name}.sh`
+Will generate a shell script to be called with the required wallet names, in the form of `add_nft_cont.sh`, and will execute it automatically. This script will build the transaction into `tx.raw` file.
 
-### Signing the hash to add a new NFT
+### Signing and sending the transaction to add a new token
 
-Approvers can sign the datum hash with:
+Approvers can then sign the transaction with:
 
 ```sh
-bin/sign datum-hash.txt {signing key file} {output file}
+multisign_send.sh {wallet name 1} {wallet name 2} ...
 ```
-
-(see `demo/sign_with_all.sh` for an example)
-
-### Build and submit the transaction to add a new NFT
-
-When you collect a sufficient number of signatures, the process can continue and the transaction can be submitted. Calling:  
-
-```sh
-continue_add_nft_{nft currency id}_{nft token name}.sh {wallet}
-```
-
-Will prompt you to select the UTxO containing the NFT to be added from {wallet}, the UTxO that locks all the NFTs already in the contract, and the UTxO for collateral.
-It will build the redeemer with the sign files listed in `signaturefiles.txt` and submit the transaction to the chain.
 
 ## Mint more fractional tokens
 
-To mint more fractional tokens, it first must be approved by the authorized signatures (defined in the initial setup in the `authorized_keys.txt` file ), so the process is broken into three steps:
+To mint more fractional tokens, it first must be approved by the authorized signatures (defined in the initial setup in the `authorized_keys.txt` file ), so the process is broken into two steps:
 
-* generate the datum and datum hash updating the total count of fractional tokens minted
-* Enough approvers signed the datum-hash.txt
-* build the transaction adding the signed hashes to the redeemer
+* Generate the datum updating the total count of fractional tokens minted and build a raw transaction
+* Sign the transaction with enough approvers and send it
 
-### Generate datum and hash to be signed to mint more
+### Generate a transaction to be signed for minting additional fractional tokens
 
 Calling
 
 ```sh
-mint_more.sh {extra amount to mint}
+mint_more.sh {extra amount to mint} {wallet name}
 ```
 
-Will read the current datum and generate a new `datum.json` file updated with the total amount of fractional tokens minted and the corresponding `datum-hash.txt` file to be distributed for signing.
-The script will also generate a shell script to be called when the signatures have been collected, in the form of `continue_mint_${extra amount to mint}.sh`
+Will read the current datum and generate a new `datum.json` file updated with the total amount of fractional tokens minted.  
+The script will also generate a shell script to be called with the required wallet names, in the form of `mint_more_cont.sh`, and will execute it automatically. This script will build the transaction into `tx.raw` file.
 
-### Signing the mint more hash
+### Signing and sending the transaction to mint additional fractional tokens
 
-Approvers can sign the datum hash with:
+Approvers can then sign the transaction with:
 
 ```sh
-bin/sign datum-hash.txt {signing key file} {output file}
+multisign_send.sh {wallet name 1} {wallet name 2} ...
 ```
 
-(see `demo/sign_with_all.sh` for an example)
+## Return all tokens
 
-### Build and submit the mint more transaction
-
-When you collect a sufficient number of signatures, the process can continue and the transaction can be submitted. Calling:  
-
-```sh
-continue_mint_${extra amount to mint}.sh {wallet}
-```
-
-Will prompt you to select the UTxO that locks all the NFTs already in the contract, and the UTxO for collateral.
-It will build the redeemer with the sign files listed in `signaturefiles.txt` and submit the transaction to the chain.
-
-## Return all NFTs
-
-To unlock all the NFTs from the contract, the wallet has to burn all the fractional tokens.
+To unlock all the tokens from the contract, the wallet has to burn all the fractional tokens.
 Calling:
 
 ```sh
 return_nft.sh {wallet} {total tokens to burn}
 ```
 
-Will prompt you to select the UTxO containing the fractional tokens to burn from {wallet}, the UTxO that contains all the NFTs in the contract, and the UTxO for collateral. It will sign and send the transaction, burning the fractional tokens and paying the NFTs to the wallet.
+Will prompt you to select the UTxO containing the fractional tokens to burn from {wallet}, the UTxO that contains all the tokens in the contract, and the UTxO for collateral.  
+It will sign and send the transaction, burning the fractional tokens and paying the tokens to the wallet.

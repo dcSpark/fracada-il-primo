@@ -1,0 +1,21 @@
+cardano-cli transaction build \
+--alonzo-era \
+--testnet-magic 2 \
+--tx-in 62b9cf3296f08520db205be6f92b86bbb6dc3ff625774f19c6ce368517cbbb1e#1 \
+--tx-in-script-file ./plutus/validator.plutus \
+--tx-in-datum-file current-datum.json \
+--tx-in-redeemer-file ../release/empty-redeemer.json \
+--tx-in 3c0fe574cb6a472437239b5604a461d226bca1714bebebc4f83e592290359239#0 \
+--tx-in-collateral 3c0fe574cb6a472437239b5604a461d226bca1714bebebc4f83e592290359239#0 \
+--tx-out "addr_test1wpmf9wjvcdjc24rlrv57pvgfmwngkhmr5fzpe4vknss8dss2suqe6 + 3000000 + 1 7d9f13a46d1541a621a163e391ea82f7110e684dcacf5502120782ee.544f4b454e + 1 d3df48f67009890ebb72d101568692f830815145cd00daab35413cfc.465241434144415f56414c4944495459 + 1 daff2cbf74fa4a93f4dafc3d59423ff1db2cae0ed471de48c40ac8db.4e4654" \
+--tx-out-datum-embed-file datum.json \
+--tx-out "addr_test1qzhd8ev7qnudq23l8xepqnj25h953hfq683f4z4v8mg2jnw6vnc8v9qd67k84qlzpetfkkc6p6u8dlz4e9u8kcjl2e5q6j584d + 1620654 + 30 d3df48f67009890ebb72d101568692f830815145cd00daab35413cfc.2c379bf016dd021f0bcce58eaf119646725396aade73a60fedf812e6b4d38168" \
+--mint "30 d3df48f67009890ebb72d101568692f830815145cd00daab35413cfc.2c379bf016dd021f0bcce58eaf119646725396aade73a60fedf812e6b4d38168" \
+--mint-script-file ./plutus/minting.plutus \
+--mint-redeemer-file redeemer.json \
+--change-address addr_test1qzhd8ev7qnudq23l8xepqnj25h953hfq683f4z4v8mg2jnw6vnc8v9qd67k84qlzpetfkkc6p6u8dlz4e9u8kcjl2e5q6j584d \
+--protocol-params-file pparams.json \
+--out-file tx.raw \
+--required-signer wallets/key1.skey \
+--required-signer wallets/key2.skey \
+--required-signer wallets/key3.skey \

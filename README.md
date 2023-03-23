@@ -115,7 +115,7 @@ use cases
     Can't mint fractional tokens:                                                                                 OK (0.10s)
     Can't add unsigned nft:                                                                                       OK (0.08s)
     Can't mint unsigned tokens:                                                                                   OK (0.09s)
-    Can't add more than one token:                                                                                OK (0.07s)
+    Can't steal token when not minting or burning:                                                                OK (0.07s)
     Can't steal NFTs when minting:                                                                                OK (0.14s)
     Can't mint extraneous tokens:                                                                                 OK (0.13s)
     Can't add the same NFT:                                                                                       OK (0.11s)
@@ -126,7 +126,7 @@ use cases
     Can't add more NFTs than limit:                                                                               OK (0.62s)
     Can't mint different than declared:                                                                           OK (0.02s)
     Can't mint different than declared when inputting arbitrary UTxO with a datum:                                OK (0.05s)
-    Can't mint without creating contract UTxO:                                                                    OK
+    Can't mint without creating contract UTxO:                                                                    OK (0.01s)
     Can't burn if NFTs not returned:                                                                              OK (0.06s)
 
 All 24 tests passed (3.24s)

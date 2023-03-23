@@ -28,10 +28,10 @@ main :: IO ()
 main = do
   args <- getArgs
   let nargs = length args
-  if (head args == "new" && nargs < 6) || (head args == "mint-more" && nargs /= 3)
+  if (head args == "new" && nargs < 7) || (head args == "mint-more" && nargs /= 3)
     then do
       putStrLn "Usage:"
-      putStrLn "build-datum new <Fraction currency symbol> <Fraction token name> <number of fractions> <minimal signatures required> <authorized pubkeys>"
+      putStrLn "build-datum new <Fraction currency symbol> <utxo hash> <utxo index> <number of fractions> <minimal signatures required> <authorized pubkeys>"
       putStrLn "     (creates a datum from scratch)"
       putStrLn "build-datum mint-more <current datum file> <number of fractions>"
       putStrLn "     (update the datum minting more fractions)"
@@ -40,19 +40,24 @@ main = do
     else do
       datum <- case head args of
         "new" -> do
-          let fracSymbol = args !! 1
-              fracTknName = args !! 2
-              numberOfFractions' = args !! 3
-              minSigs' = args !! 4
-              pubKeys' = drop 5 args
+          let fracSymbol         = args !! 1
+              txOutHash'         = args !! 2
+              txOutIx'           = args !! 3
+              numberOfFractions' = args !! 4
+              minSigs'           = args !! 5
+              pubKeys'           = drop 6 args
+
               fracCurrencySymbol = fromString fracSymbol
-              fracTokenName = fromString fracTknName
-              numberOfFractions = read numberOfFractions' :: Integer
+              txOutHash          = fromString txOutHash'
+              txOutIx            = read txOutIx' :: Integer
+              numberOfFractions  = read numberOfFractions' :: Integer
 
               minSigs = read minSigs' :: Integer
               pubKeys = map fromString pubKeys' :: [PubKeyHash]
 
-              frac = AssetClass (fracCurrencySymbol, fracTokenName)
+              utxo              = TxOutRef {txOutRefId = txOutHash, txOutRefIdx = txOutIx}
+              fractionTokenName = TokenName {unTokenName = calculateFractionTokenNameHash utxo}
+              frac = AssetClass (fracCurrencySymbol, fractionTokenName)
            in pure FracadaDatum {fractionAC = frac, emittedFractions = numberOfFractions, authorizedPubKeys = pubKeys, minSigRequired = minSigs}
         "mint-more" -> do
           let currentDatumFile = args !! 1

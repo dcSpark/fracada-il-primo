@@ -14,9 +14,21 @@ function getInputTx() {
 	read -p 'TX row number: ' TMP
 	TX_ROW_NUM="$(($TMP+2))"
 	TX_ROW=$(sed "${TX_ROW_NUM}q;d" $BALANCE_FILE)
-	SELECTED_UTXO="$(echo $TX_ROW | awk '{ print $2 }')#$(echo $TX_ROW | awk '{ print $3 }')"
+	SELECTED_UTXO_HASH="$(echo $TX_ROW | awk '{ print $2 }')"
+	SELECTED_UTXO_INDEX="$(echo $TX_ROW | awk '{ print $3 }')"
+	SELECTED_UTXO=$SELECTED_UTXO_HASH'#'$SELECTED_UTXO_INDEX
 	SELECTED_UTXO_LOVELACE=$(echo $TX_ROW | awk '{ print $4 }')
 	SELECTED_UTXO_TOKENS=$(echo $TX_ROW | awk 'BEGIN { FS = "lovelace \\+ | \\+ TxOutDatumHash" } ; { print $2 }')
+	UTXO_TOKENS_WITHOUT_VALIDITY=${SELECTED_UTXO_TOKENS/1 $VALIDITY_ASSET + /}
+	UTXO_TOKENS_WITHOUT_VALIDITY=${UTXO_TOKENS_WITHOUT_VALIDITY/ + 1 $VALIDITY_ASSET/}
+}
+
+function loadFractionTokenName() {
+	FRACT_TOKEN_NAME=`cat fraction-tokenname.txt`
+	# remove leading and trailing quotes
+	FRACT_TOKEN_NAME="${FRACT_TOKEN_NAME%\"}"
+	FRACT_TOKEN_NAME="${FRACT_TOKEN_NAME#\"}"
+	FRACT_ASSET=$FRACT_CURRENCY.$FRACT_TOKEN_NAME
 }
 
 walletAddress() {

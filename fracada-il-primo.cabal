@@ -172,7 +172,60 @@ executable           build-datum
 executable           build-redeemer
   main-is:           build-redeemer.hs
   hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Validator, Fracada.Utils, Fracada.Context, Fracada.Constants
+  other-modules:     Fracada.Validator, Fracada.Utils, Fracada.Context, Fracada.Constants, Fracada.Minting
+  build-depends:     base
+                    , aeson
+                    , containers
+                    , plutus-core
+                    , plutus-contract
+                    , plutus-ledger
+                    , plutus-ledger-api
+                    , plutus-tx
+                    , plutus-tx-plugin
+                    , text
+                    , serialise
+                    , playground-common
+                    , cardano-api
+                    , hex
+                    , bytestring
+                    , base16-bytestring
+  default-language:   Haskell2010
+  default-extensions: DataKinds
+                      DeriveAnyClass
+                      DeriveGeneric
+                      DerivingStrategies
+                      ExplicitForAll
+                      FunctionalDependencies
+                      GADTs
+                      MultiParamTypeClasses
+                      NamedFieldPuns
+                      OverloadedStrings
+                      PolyKinds
+                      KindSignatures
+                      StandaloneDeriving
+                      TemplateHaskell
+                      TypeApplications
+                      TypeFamilies
+                      TypeOperators
+                      MultiParamTypeClasses
+                      ScopedTypeVariables
+                      StandaloneKindSignatures
+  ghc-options:        -Wall
+                      -Wcompat
+                      -Wincomplete-record-updates
+                      -Wincomplete-uni-patterns
+                      -Wredundant-constraints
+                      -Werror
+                      -Wpartial-fields
+                      -fobject-code
+                      -fno-ignore-interface-pragmas
+                      -fno-omit-interface-pragmas
+                      -fplugin-opt PlutusTx.Plugin:defer-errors
+
+executable           build-fraction-tokenname
+  main-is:           build-fraction-tokenname.hs
+  hs-source-dirs:    scripts, src
+  other-modules:     Fracada.Validator, Fracada.Utils, Fracada.Context, Fracada.Constants, Fracada.Minting
   build-depends:     base
                     , aeson
                     , containers
@@ -278,7 +331,6 @@ executable           script-dump
                       -fno-omit-interface-pragmas
                       -fno-specialise
                       -fplugin-opt PlutusTx.Plugin:defer-errors
-
 
 executable           fracada-scripts
   main-is:           Main.hs
@@ -497,62 +549,3 @@ executable            test-utxo-limit
 
   if !(impl(ghcjs) || os(ghcjs))
     build-depends: plutus-tx-plugin -any
-
-
-executable           sign
-  main-is:           sign.hs
-  hs-source-dirs:    scripts, src
-  other-modules:     Fracada.Validator, Fracada.Utils, Fracada.Context, Fracada.Constants
-  build-depends:     base
-                    , aeson
-                    , cardano-api
-                    , bytestring
-                    , containers
-                    , plutus-core
-                    , plutus-contract
-                    , plutus-ledger
-                    , plutus-ledger-api
-                    , plutus-tx
-                    , text
-                    , serialise
-                    , playground-common
-                    , cardano-api
-                    , hex
-                    , base16-bytestring
-                    , cardano-crypto
-                    , cardano-crypto-class
-                    , memory
-                    , plutus-tx-plugin
-  default-language:   Haskell2010
-  default-extensions: DataKinds
-                      DeriveAnyClass
-                      DeriveGeneric
-                      DerivingStrategies
-                      ExplicitForAll
-                      FunctionalDependencies
-                      GADTs
-                      MultiParamTypeClasses
-                      NamedFieldPuns
-                      OverloadedStrings
-                      PolyKinds
-                      KindSignatures
-                      StandaloneDeriving
-                      TemplateHaskell
-                      TypeApplications
-                      TypeFamilies
-                      TypeOperators
-                      MultiParamTypeClasses
-                      ScopedTypeVariables
-                      StandaloneKindSignatures
-  ghc-options:        -Wall
-                      -Wcompat
-                      -Wincomplete-record-updates
-                      -Wincomplete-uni-patterns
-                      -Wredundant-constraints
-                      -Werror
-                      -Wpartial-fields
-                      -fobject-code
-                      -fno-ignore-interface-pragmas
-                      -fno-omit-interface-pragmas
-                      -Wincomplete-uni-patterns
-                      -fplugin-opt PlutusTx.Plugin:defer-errors
