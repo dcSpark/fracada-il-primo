@@ -2,20 +2,18 @@
   description = "fracada-il-primo";
 
   inputs = {
-
-    haskell-nix.url = "github:input-output-hk/haskell.nix";
-    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
-    iohk-nix.url = "github:input-output-hk/iohk-nix";
-    iohk-nix.flake = false;
-    plutarch.url = "github:plutonomicon/plutarch-plutus";
+    iohk-nix.follows = "plutus-simple-model/tooling/iohk-nix";
+    haskell-nix.follows = "plutus-simple-model/tooling/haskell-nix";
+    nixpkgs.follows = "plutus-simple-model/nixpkgs";
+    tooling.follows = "plutus-simple-model/tooling";
+    plutarch.follows = "plutus-simple-model/plutarch";
     #    plutus.flake = false;
     plutus-simple-model.url = "github:mlabs-haskell/plutus-simple-model?rev=450e278a819bf2955828726d02e239d233c36cba";
-    plutus-simple-model.inputs.plutus.follows = "plutus";
   };
 
-  outputs = { self, nixpkgs, haskell-nix, plutus-simple-model, iohk-nix, plutarch, ... }:
+  outputs = { self, iohk-nix, haskell-nix, nixpkgs, plutus-simple-model, tooling, plutarch, ... }:
     let
-      defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
+      defaultSystems = [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin"];
 
       perSystem = nixpkgs.lib.genAttrs defaultSystems;
 
