@@ -3,4 +3,4 @@ packages: fracada-il-primo.cabal
 source-repository-package
    type: git
    location: https://github.com/mlabs-haskell/plutus-simple-model
-   tag: c99dfc852cda9f3b8d88c0d63ac4e8ae52ae69fa
+   tag: 450e278a819bf2955828726d02e239d233c36cba
