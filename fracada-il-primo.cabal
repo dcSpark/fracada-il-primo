@@ -80,7 +80,7 @@ executable trace
                         -fno-specialise
     build-depends:      aeson
                         , fracada-il-primo
-                        , base ^>=4.14.1.0
+                        , base
                         , base16-bytestring
                         , bytestring
                         , data-default

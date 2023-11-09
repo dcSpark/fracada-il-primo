@@ -2,17 +2,18 @@
   description = "fracada-il-primo";
 
   inputs = {
-    haskell-nix.follows = "plutus-simple-model/haskell-nix";
-    nixpkgs.follows = "plutus-simple-model/nixpkgs";
-    iohk-nix.follows = "plutus-simple-model/iohk-nix";
-    haskell-nix-extra-hackage.follows = "plutus-simple-model/haskell-nix-extra-hackage";
-    plutus.url = "github:input-output-hk/plutus?rev=8ab4c3355c5fdf67dcf6acc1f5a14668d5e6f0a9";
-    plutus.flake = false;
-    plutus-simple-model.url = "github:mlabs-haskell/plutus-simple-model?rev=c99dfc852cda9f3b8d88c0d63ac4e8ae52ae69fa";
+
+    haskell-nix.url = "github:input-output-hk/haskell.nix";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
+    iohk-nix.url = "github:input-output-hk/iohk-nix";
+    iohk-nix.flake = false;
+    plutarch.url = "github:plutonomicon/plutarch-plutus";
+    #    plutus.flake = false;
+    plutus-simple-model.url = "github:mlabs-haskell/plutus-simple-model?rev=450e278a819bf2955828726d02e239d233c36cba";
     plutus-simple-model.inputs.plutus.follows = "plutus";
   };
 
-  outputs = { self, nixpkgs, haskell-nix, plutus-simple-model, iohk-nix, haskell-nix-extra-hackage, ... }:
+  outputs = { self, nixpkgs, haskell-nix, plutus-simple-model, iohk-nix, plutarch, ... }:
     let
       defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
 
@@ -30,7 +31,7 @@
 
       myhackages =
         let i = plutus-simple-model.inputs; in
-        system: compiler-nix-name: haskell-nix-extra-hackage.mkHackagesFor system compiler-nix-name (
+        system: compiler-nix-name: plutarch.inputs.haskell-nix-extra-hackage.mkHackagesFor system compiler-nix-name (
         [
           "${plutus-simple-model}"
           "${i.cardano-base}/base-deriving-via"
