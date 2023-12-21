@@ -12,3 +12,6 @@ demo/add_nft_cont.sh
 demo/multisign_send_cont.sh
 testnet_demo/node_modules
 testnet_demo/dist
+
+**/.DS_Store
+.idea/

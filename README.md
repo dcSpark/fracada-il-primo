@@ -5,10 +5,8 @@
 
 <p align="center"><img src="https://img.shields.io/badge/license-mit-blue?style=for-the-badge&logo=none" alt="license" /></p>
 
-## Disclaimer
 
-The code on this repository has **not** been audited. We don't recommend it using in production without a full security audit. Use it at your own risk!.
-If any of the fraction tokens are lost, locked Token(s) are locked forever.
+The code on this repository has been audited by MLabs. The audit results is available [here](docs/audit.pdf). The issues that were identified during the audit are fixed by [this PR](https://github.com/dcSpark/fracada-il-primo/pull/5). 
 
 ## User guarantee
 
